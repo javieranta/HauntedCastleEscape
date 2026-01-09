@@ -22,7 +22,6 @@ namespace HauntedCastle.Enemies
         [SerializeField] private Rigidbody2D rb;
         [SerializeField] private Collider2D col;
         [SerializeField] private SpriteRenderer spriteRenderer;
-        [SerializeField] private EnemyHealth health;
 
         [Header("AI State")]
         [SerializeField] private EnemyState currentState = EnemyState.Idle;
@@ -91,7 +90,6 @@ namespace HauntedCastle.Enemies
             if (rb == null) rb = GetComponent<Rigidbody2D>();
             if (col == null) col = GetComponent<Collider2D>();
             if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
-            if (health == null) health = GetComponent<EnemyHealth>();
 
             // Configure rigidbody
             rb.gravityScale = 0f;
@@ -347,7 +345,7 @@ namespace HauntedCastle.Enemies
                     break;
             }
 
-            rb.linearVelocity = moveDirection * speed;
+            rb.velocity = moveDirection * speed;
 
             // Flip sprite based on direction
             if (spriteRenderer != null && moveDirection.x != 0)
@@ -442,7 +440,7 @@ namespace HauntedCastle.Enemies
         {
             ChangeState(EnemyState.Stunned);
             stateTimer = duration;
-            rb.linearVelocity = Vector2.zero;
+            rb.velocity = Vector2.zero;
 
             // Visual feedback
             if (spriteRenderer != null)
@@ -462,7 +460,7 @@ namespace HauntedCastle.Enemies
             _currentHealth -= damage;
 
             // Knockback
-            rb.linearVelocity = knockbackDirection.normalized * 3f;
+            rb.velocity = knockbackDirection.normalized * 3f;
 
             // Flash effect
             StartCoroutine(DamageFlash());
@@ -494,7 +492,7 @@ namespace HauntedCastle.Enemies
             if (_isDead) return;
 
             _isDead = true;
-            rb.linearVelocity = Vector2.zero;
+            rb.velocity = Vector2.zero;
 
             OnEnemyDeath?.Invoke();
             OnEnemyDestroyed?.Invoke(this);

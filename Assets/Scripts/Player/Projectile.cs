@@ -60,7 +60,7 @@ namespace HauntedCastle.Player
             _initialized = true;
 
             // Set velocity
-            _rb.linearVelocity = _direction * speed;
+            _rb.velocity = _direction * speed;
 
             // Rotate sprite to face direction
             float angle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
@@ -208,7 +208,7 @@ namespace HauntedCastle.Player
         public void Reflect()
         {
             _direction = -_direction;
-            _rb.linearVelocity = _direction * speed;
+            _rb.velocity = _direction * speed;
             isPlayerProjectile = !isPlayerProjectile;
 
             float angle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
@@ -221,7 +221,7 @@ namespace HauntedCastle.Player
         public void BoostSpeed(float multiplier)
         {
             speed *= multiplier;
-            _rb.linearVelocity = _direction * speed;
+            _rb.velocity = _direction * speed;
         }
     }
 }

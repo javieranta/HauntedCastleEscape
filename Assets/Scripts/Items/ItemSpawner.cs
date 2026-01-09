@@ -70,7 +70,7 @@ namespace HauntedCastle.Items
             }
         }
 
-        private void OnRoomUnloading(string roomId)
+        private void OnRoomUnloading(RoomData roomData)
         {
             // Clear current room items
             ClearCurrentRoomItems();

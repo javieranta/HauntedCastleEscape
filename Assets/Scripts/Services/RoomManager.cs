@@ -484,7 +484,7 @@ namespace HauntedCastle.Services
             hazard.Initialize(hazardData);
         }
 
-        private Vector2 GetSpawnPosition(RoomData roomData, string spawnPointId)
+        public Vector2 GetSpawnPosition(RoomData roomData, string spawnPointId)
         {
             if (string.IsNullOrEmpty(spawnPointId))
             {
@@ -513,6 +513,14 @@ namespace HauntedCastle.Services
                 "center" or "start" => Vector2.zero,
                 _ => Vector2.zero
             };
+        }
+
+        /// <summary>
+        /// Gets spawn position in current room by spawn point ID.
+        /// </summary>
+        public Vector2 GetSpawnPosition(string spawnPointId)
+        {
+            return GetSpawnPosition(CurrentRoomData, spawnPointId);
         }
 
         /// <summary>

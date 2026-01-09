@@ -80,7 +80,7 @@ namespace HauntedCastle.Enemies
             }
         }
 
-        private void OnRoomUnloading(string roomId)
+        private void OnRoomUnloading(RoomData roomData)
         {
             ClearCurrentRoomEnemies();
         }

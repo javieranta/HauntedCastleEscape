@@ -176,7 +176,7 @@ namespace HauntedCastle.Player
                 ApplyFriction();
             }
 
-            rb.linearVelocity = _velocity;
+            rb.velocity = _velocity;
 
             // Update animator
             if (playerAnimator != null)
@@ -192,7 +192,7 @@ namespace HauntedCastle.Player
             {
                 _velocity = Vector2.zero;
             }
-            rb.linearVelocity = _velocity;
+            rb.velocity = _velocity;
         }
 
         private void TryInteract()
@@ -229,7 +229,7 @@ namespace HauntedCastle.Player
                 Vector2 spawnPos = RoomManager.Instance.GetPendingSpawnPosition();
                 transform.position = spawnPos;
                 _velocity = Vector2.zero;
-                rb.linearVelocity = Vector2.zero;
+                rb.velocity = Vector2.zero;
             }
         }
 
@@ -240,7 +240,7 @@ namespace HauntedCastle.Player
         {
             transform.position = position;
             _velocity = Vector2.zero;
-            rb.linearVelocity = Vector2.zero;
+            rb.velocity = Vector2.zero;
         }
 
         /// <summary>
@@ -249,7 +249,7 @@ namespace HauntedCastle.Player
         public void ApplyKnockback(Vector2 direction, float force)
         {
             _velocity = direction.normalized * force;
-            rb.linearVelocity = _velocity;
+            rb.velocity = _velocity;
         }
 
         /// <summary>

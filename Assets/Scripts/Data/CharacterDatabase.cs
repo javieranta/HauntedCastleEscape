@@ -1,4 +1,5 @@
 using UnityEngine;
+using HauntedCastle.Services;
 
 namespace HauntedCastle.Data
 {
