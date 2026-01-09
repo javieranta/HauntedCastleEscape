@@ -2,11 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Services;
+using HauntedCastle.Inventory;
 
 namespace HauntedCastle.Rooms
 {
     /// <summary>
     /// Door component that handles player interaction and room transitions.
+    /// Integrates with PlayerInventory for key-based unlocking.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class Door : MonoBehaviour
@@ -23,6 +25,11 @@ namespace HauntedCastle.Rooms
 
         [Header("State")]
         [SerializeField] private bool isUnlocked = false;
+
+        [Header("Audio")]
+        [SerializeField] private AudioSource audioSource;
+        [SerializeField] private AudioClip unlockSound;
+        [SerializeField] private AudioClip lockedSound;
 
         // Properties
         public DoorDirection Direction => direction;
@@ -61,7 +68,34 @@ namespace HauntedCastle.Rooms
         }
 
         /// <summary>
-        /// Checks if the player can pass through this door.
+        /// Checks if the player can pass through this door using PlayerInventory.
+        /// </summary>
+        public bool CanPass()
+        {
+            if (isUnlocked || DoorType == DoorType.Open)
+            {
+                return true;
+            }
+
+            if (DoorType == DoorType.Locked && RequiredKey != KeyColor.None)
+            {
+                // Check PlayerInventory for the required key
+                if (PlayerInventory.Instance != null)
+                {
+                    return PlayerInventory.Instance.HasKey(RequiredKey);
+                }
+            }
+
+            if (DoorType == DoorType.Hidden)
+            {
+                return isUnlocked;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Legacy method for compatibility - checks if the player can pass through this door.
         /// </summary>
         public bool CanPass(List<string> playerInventory)
         {
@@ -79,10 +113,36 @@ namespace HauntedCastle.Rooms
 
             if (DoorType == DoorType.Hidden)
             {
-                // Hidden doors need to be revealed first
                 return isUnlocked;
             }
 
+            return false;
+        }
+
+        /// <summary>
+        /// Attempts to unlock the door using the player's inventory.
+        /// Returns true if the door was unlocked.
+        /// </summary>
+        public bool TryUnlockWithInventory()
+        {
+            if (isUnlocked || DoorType != DoorType.Locked)
+            {
+                return isUnlocked;
+            }
+
+            if (PlayerInventory.Instance != null && RequiredKey != KeyColor.None)
+            {
+                if (PlayerInventory.Instance.TryUseKey(RequiredKey))
+                {
+                    isUnlocked = true;
+                    UpdateVisual();
+                    PlayUnlockSound();
+                    Debug.Log($"[Door] Unlocked {direction} door with {RequiredKey} key");
+                    return true;
+                }
+            }
+
+            PlayLockedSound();
             return false;
         }
 
@@ -100,13 +160,28 @@ namespace HauntedCastle.Rooms
             {
                 isUnlocked = true;
                 UpdateVisual();
-
-                // Play unlock sound
+                PlayUnlockSound();
                 Debug.Log($"[Door] Unlocked {direction} door with {keyColor} key");
                 return true;
             }
 
             return false;
+        }
+
+        private void PlayUnlockSound()
+        {
+            if (audioSource != null && unlockSound != null)
+            {
+                audioSource.PlayOneShot(unlockSound);
+            }
+        }
+
+        private void PlayLockedSound()
+        {
+            if (audioSource != null && lockedSound != null)
+            {
+                audioSource.PlayOneShot(lockedSound);
+            }
         }
 
         /// <summary>
@@ -161,10 +236,8 @@ namespace HauntedCastle.Rooms
         {
             if (!other.CompareTag("Player")) return;
 
-            // Get player inventory (will be properly implemented in Milestone 3)
-            var playerInventory = new List<string>(); // Placeholder
-
-            if (CanPass(playerInventory))
+            // Check if player can pass using inventory
+            if (CanPass())
             {
                 // Trigger room transition
                 if (RoomManager.Instance != null)
@@ -175,8 +248,18 @@ namespace HauntedCastle.Rooms
             else if (DoorType == DoorType.Locked)
             {
                 // Try to auto-unlock with player's key
-                // This will be properly implemented with inventory system
-                Debug.Log($"[Door] Need {RequiredKey} key to unlock");
+                if (!TryUnlockWithInventory())
+                {
+                    Debug.Log($"[Door] Need {RequiredKey} key to unlock");
+                }
+                else
+                {
+                    // Door was unlocked, now pass through
+                    if (RoomManager.Instance != null)
+                    {
+                        RoomManager.Instance.TransitionThroughDoor(direction);
+                    }
+                }
             }
         }
 

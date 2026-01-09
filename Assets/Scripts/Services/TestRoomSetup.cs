@@ -252,38 +252,48 @@ namespace HauntedCastle.Services
 
         private ItemSpawn CreateItemSpawn(string itemId, Vector2 position, bool persistent = false)
         {
-            // Note: ItemData would normally be a ScriptableObject reference
-            // For testing, we create a placeholder
-            var itemData = ScriptableObject.CreateInstance<ItemData>();
-            itemData.itemId = itemId;
-            itemData.displayName = itemId.Replace("_", " ");
+            // Try to get item from ItemDatabase first
+            var itemData = ItemDatabase.GetItem(itemId);
 
-            // Set item type based on ID
-            if (itemId.StartsWith("food"))
+            // If not found in database, create a placeholder
+            if (itemData == null)
             {
-                itemData.itemType = ItemType.Food;
-                itemData.energyRestore = 25f;
-            }
-            else if (itemId.StartsWith("key_"))
-            {
-                itemData.itemType = ItemType.Key;
-                itemData.keyColor = itemId switch
+                itemData = ScriptableObject.CreateInstance<ItemData>();
+                itemData.itemId = itemId;
+                itemData.displayName = itemId.Replace("_", " ");
+
+                // Set item type based on ID
+                if (itemId.StartsWith("food"))
                 {
-                    "key_red" => KeyColor.Red,
-                    "key_blue" => KeyColor.Blue,
-                    "key_green" => KeyColor.Green,
-                    _ => KeyColor.None
-                };
-            }
-            else if (itemId.StartsWith("keypiece"))
-            {
-                itemData.itemType = ItemType.KeyPiece;
-                itemData.keyPieceIndex = int.Parse(itemId.Split('_')[1]);
-            }
-            else if (itemId.StartsWith("treasure"))
-            {
-                itemData.itemType = ItemType.Treasure;
-                itemData.scoreValue = 100;
+                    itemData.itemType = ItemType.Food;
+                    itemData.energyRestore = 25f;
+                }
+                else if (itemId.StartsWith("key_"))
+                {
+                    itemData.itemType = ItemType.Key;
+                    itemData.keyColor = itemId switch
+                    {
+                        "key_red" => KeyColor.Red,
+                        "key_blue" => KeyColor.Blue,
+                        "key_green" => KeyColor.Green,
+                        _ => KeyColor.None
+                    };
+                }
+                else if (itemId.StartsWith("key_piece") || itemId.StartsWith("keypiece"))
+                {
+                    itemData.itemType = ItemType.KeyPiece;
+                    // Parse index from "key_piece_0" or "keypiece_0"
+                    string lastPart = itemId.Split('_')[^1];
+                    if (int.TryParse(lastPart, out int index))
+                    {
+                        itemData.keyPieceIndex = index;
+                    }
+                }
+                else if (itemId.StartsWith("treasure"))
+                {
+                    itemData.itemType = ItemType.Treasure;
+                    itemData.scoreValue = 100;
+                }
             }
 
             return new ItemSpawn

@@ -1,5 +1,7 @@
 using UnityEngine;
 using HauntedCastle.UI;
+using HauntedCastle.Inventory;
+using HauntedCastle.Items;
 
 namespace HauntedCastle.Services
 {
@@ -79,11 +81,32 @@ namespace HauntedCastle.Services
                 }
             }
 
+            // Ensure PlayerInventory exists
+            if (PlayerInventory.Instance == null)
+            {
+                var invObj = new GameObject("PlayerInventory");
+                invObj.AddComponent<PlayerInventory>();
+            }
+
+            // Ensure ItemSpawner exists
+            if (ItemSpawner.Instance == null)
+            {
+                var isObj = new GameObject("ItemSpawner");
+                isObj.AddComponent<ItemSpawner>();
+            }
+
             // Ensure PlayerHUD exists
             if (FindFirstObjectByType<PlayerHUD>() == null)
             {
                 var hudObj = new GameObject("PlayerHUD");
                 hudObj.AddComponent<PlayerHUD>();
+            }
+
+            // Ensure InventoryUI exists
+            if (FindFirstObjectByType<InventoryUI>() == null)
+            {
+                var invUIObj = new GameObject("InventoryUI");
+                invUIObj.AddComponent<InventoryUI>();
             }
 
             // Setup room container
