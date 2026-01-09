@@ -11,9 +11,11 @@ namespace HauntedCastle.Data
     {
         [Header("Identity")]
         public CharacterType characterType;
+        public string characterName;
         public string displayName;
         [TextArea(2, 4)]
         public string description;
+        public Color characterColor = Color.white;
 
         [Header("Movement")]
         [Range(1f, 10f)]

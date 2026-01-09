@@ -207,6 +207,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 201}
+  - component: {fileID: 202}
+  - component: {fileID: 203}
   m_Layer: 0
   m_Name: GameInitializer
   m_TagString: Untagged
@@ -229,6 +231,35 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000001, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: HauntedCastle.Services.GameSceneInitializer
+  roomManagerPrefab: {fileID: 0}
+  transitionManagerPrefab: {fileID: 0}
+  playerSpawnerPrefab: {fileID: 0}
+  roomContainer: {fileID: 301}
+  mainCamera: {fileID: 102}
+--- !u!114 &203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000002, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: HauntedCastle.Services.TestRoomSetup
 --- !u!1 &300
 GameObject:
   m_ObjectHideFlags: 0
@@ -269,6 +300,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 401}
+  - component: {fileID: 402}
   m_Layer: 0
   m_Name: DebugUI
   m_TagString: Untagged
@@ -291,3 +323,15 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 400}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000003, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: HauntedCastle.Debug.RoomDebugUI

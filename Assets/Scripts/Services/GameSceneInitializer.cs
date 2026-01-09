@@ -1,4 +1,5 @@
 using UnityEngine;
+using HauntedCastle.UI;
 
 namespace HauntedCastle.Services
 {
@@ -11,6 +12,7 @@ namespace HauntedCastle.Services
         [Header("Manager Prefabs")]
         [SerializeField] private GameObject roomManagerPrefab;
         [SerializeField] private GameObject transitionManagerPrefab;
+        [SerializeField] private GameObject playerSpawnerPrefab;
 
         [Header("Scene References")]
         [SerializeField] private Transform roomContainer;
@@ -61,6 +63,27 @@ namespace HauntedCastle.Services
                     var rmObj = new GameObject("RoomManager");
                     rmObj.AddComponent<RoomManager>();
                 }
+            }
+
+            // Ensure PlayerSpawner exists
+            if (PlayerSpawner.Instance == null)
+            {
+                if (playerSpawnerPrefab != null)
+                {
+                    Instantiate(playerSpawnerPrefab);
+                }
+                else
+                {
+                    var psObj = new GameObject("PlayerSpawner");
+                    psObj.AddComponent<PlayerSpawner>();
+                }
+            }
+
+            // Ensure PlayerHUD exists
+            if (FindFirstObjectByType<PlayerHUD>() == null)
+            {
+                var hudObj = new GameObject("PlayerHUD");
+                hudObj.AddComponent<PlayerHUD>();
             }
 
             // Setup room container
