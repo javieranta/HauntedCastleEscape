@@ -60,7 +60,17 @@ namespace HauntedCastle.Player
         /// </summary>
         public bool TryAttack(Vector2 direction)
         {
-            if (!CanAttack || characterData == null) return false;
+            if (!CanAttack) return false;
+
+            // If no character data, use fallback attack
+            if (characterData == null)
+            {
+                Debug.LogWarning("[PlayerCombat] No characterData, using fallback projectile attack");
+                _attackCooldownTimer = 0.4f;
+                FireFallbackProjectile(direction);
+                OnAttack?.Invoke();
+                return true;
+            }
 
             // Start cooldown
             _attackCooldownTimer = characterData.attackCooldown;
@@ -85,7 +95,23 @@ namespace HauntedCastle.Player
             PlayAttackSound();
 
             OnAttack?.Invoke();
+            Debug.Log($"[PlayerCombat] Attack performed: {characterData.attackType}");
             return true;
+        }
+
+        private void FireFallbackProjectile(Vector2 direction)
+        {
+            Vector3 spawnPos = transform.position + (Vector3)direction * 0.5f;
+            GameObject projObj = CreateDefaultProjectile(spawnPos);
+
+            var projectile = projObj.GetComponent<Projectile>();
+            if (projectile == null)
+            {
+                projectile = projObj.AddComponent<Projectile>();
+            }
+
+            projectile.Initialize(direction, 8f, 1, 6f, true);
+            Debug.Log($"[PlayerCombat] Fired fallback projectile in direction {direction}");
         }
 
         private void FireProjectile(Vector2 direction)

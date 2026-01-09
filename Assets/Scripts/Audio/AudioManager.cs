@@ -147,9 +147,16 @@ namespace HauntedCastle.Audio
                 sfxSource.volume = masterVolume * sfxVolume;
             }
 
-            foreach (var source in _sfxPool)
+            // Guard against null pool (called before InitializeSFXPool)
+            if (_sfxPool != null)
             {
-                source.volume = masterVolume * sfxVolume;
+                foreach (var source in _sfxPool)
+                {
+                    if (source != null)
+                    {
+                        source.volume = masterVolume * sfxVolume;
+                    }
+                }
             }
         }
 

@@ -21,6 +21,8 @@ namespace HauntedCastle.Player
         private InputAction _pauseAction;
         private InputAction _dropItemAction;
 
+        private bool _isInitialized = false;
+
         private void Awake()
         {
             _playerInput = GetComponent<PlayerInput>();
@@ -35,12 +37,22 @@ namespace HauntedCastle.Player
                 playerCombat = GetComponent<PlayerCombat>();
             }
 
+            // Don't setup input actions here - wait for Start when PlayerInput is fully configured
+        }
+
+        private void Start()
+        {
+            // Setup input actions in Start, after PlayerSetup has configured the PlayerInput component
             SetupInputActions();
         }
 
         private void OnEnable()
         {
-            EnableInput();
+            // Only enable if already initialized
+            if (_isInitialized)
+            {
+                EnableInput();
+            }
         }
 
         private void OnDisable()
@@ -50,20 +62,59 @@ namespace HauntedCastle.Player
 
         private void SetupInputActions()
         {
+            // Check if PlayerInput and actions are properly configured
+            if (_playerInput == null)
+            {
+                _playerInput = GetComponent<PlayerInput>();
+            }
+
+            if (_playerInput == null || _playerInput.actions == null)
+            {
+                Debug.LogWarning("[PlayerInputHandler] PlayerInput or actions not configured yet, will retry");
+                StartCoroutine(RetrySetupInputActions());
+                return;
+            }
+
             var actionMap = _playerInput.actions.FindActionMap("Player");
 
             if (actionMap != null)
             {
+                // Enable the action map first!
+                actionMap.Enable();
+
                 _moveAction = actionMap.FindAction("Move");
                 _attackAction = actionMap.FindAction("Attack");
                 _interactAction = actionMap.FindAction("Interact");
                 _pauseAction = actionMap.FindAction("Pause");
                 _dropItemAction = actionMap.FindAction("DropItem");
+
+                Debug.Log($"[PlayerInputHandler] Action map 'Player' enabled. Move action: {_moveAction != null}");
             }
             else
             {
                 Debug.LogWarning("[PlayerInputHandler] Could not find 'Player' action map");
             }
+
+            _isInitialized = true;
+            EnableInput();
+            Debug.Log("[PlayerInputHandler] Input actions initialized successfully");
+        }
+
+        private System.Collections.IEnumerator RetrySetupInputActions()
+        {
+            // Wait a few frames for PlayerSetup to configure the PlayerInput component
+            for (int i = 0; i < 10; i++)
+            {
+                yield return null;
+
+                if (_playerInput != null && _playerInput.actions != null)
+                {
+                    SetupInputActions();
+                    yield break;
+                }
+            }
+
+            Debug.LogError("[PlayerInputHandler] Failed to setup input actions after retries - PlayerInput not configured!");
         }
 
         private void EnableInput()

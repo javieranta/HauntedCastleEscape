@@ -32,6 +32,12 @@ namespace HauntedCastle.Rooms
         public bool IsStartRoom => roomData?.isStartRoom ?? false;
         public bool IsExitRoom => roomData?.isExitRoom ?? false;
 
+        // Room dimensions
+        private const float ROOM_WIDTH = 14f;
+        private const float ROOM_HEIGHT = 10f;
+        private const float WALL_THICKNESS = 1f;
+        private const float DOOR_WIDTH = 2f;
+
         public void Initialize(RoomData data)
         {
             roomData = data;
@@ -39,6 +45,112 @@ namespace HauntedCastle.Rooms
 
             SetupBackground();
             SetupAmbience();
+            SetupWallColliders();
+        }
+
+        /// <summary>
+        /// Creates invisible wall colliders around the room perimeter with gaps for doors.
+        /// </summary>
+        private void SetupWallColliders()
+        {
+            var wallsContainer = new GameObject("WallColliders");
+            wallsContainer.transform.SetParent(transform);
+            wallsContainer.transform.localPosition = Vector3.zero;
+
+            float halfWidth = ROOM_WIDTH / 2f;
+            float halfHeight = ROOM_HEIGHT / 2f;
+
+            // North wall (top)
+            bool hasNorthDoor = roomData.northDoor?.exists == true;
+            if (hasNorthDoor)
+            {
+                // Left segment
+                CreateWallCollider(wallsContainer, "NorthWall_Left",
+                    new Vector2(-halfWidth / 2f - DOOR_WIDTH / 4f, halfHeight + WALL_THICKNESS / 2f),
+                    new Vector2(halfWidth - DOOR_WIDTH / 2f, WALL_THICKNESS));
+                // Right segment
+                CreateWallCollider(wallsContainer, "NorthWall_Right",
+                    new Vector2(halfWidth / 2f + DOOR_WIDTH / 4f, halfHeight + WALL_THICKNESS / 2f),
+                    new Vector2(halfWidth - DOOR_WIDTH / 2f, WALL_THICKNESS));
+            }
+            else
+            {
+                CreateWallCollider(wallsContainer, "NorthWall",
+                    new Vector2(0, halfHeight + WALL_THICKNESS / 2f),
+                    new Vector2(ROOM_WIDTH + WALL_THICKNESS * 2, WALL_THICKNESS));
+            }
+
+            // South wall (bottom)
+            bool hasSouthDoor = roomData.southDoor?.exists == true;
+            if (hasSouthDoor)
+            {
+                CreateWallCollider(wallsContainer, "SouthWall_Left",
+                    new Vector2(-halfWidth / 2f - DOOR_WIDTH / 4f, -halfHeight - WALL_THICKNESS / 2f),
+                    new Vector2(halfWidth - DOOR_WIDTH / 2f, WALL_THICKNESS));
+                CreateWallCollider(wallsContainer, "SouthWall_Right",
+                    new Vector2(halfWidth / 2f + DOOR_WIDTH / 4f, -halfHeight - WALL_THICKNESS / 2f),
+                    new Vector2(halfWidth - DOOR_WIDTH / 2f, WALL_THICKNESS));
+            }
+            else
+            {
+                CreateWallCollider(wallsContainer, "SouthWall",
+                    new Vector2(0, -halfHeight - WALL_THICKNESS / 2f),
+                    new Vector2(ROOM_WIDTH + WALL_THICKNESS * 2, WALL_THICKNESS));
+            }
+
+            // West wall (left)
+            bool hasWestDoor = roomData.westDoor?.exists == true;
+            if (hasWestDoor)
+            {
+                CreateWallCollider(wallsContainer, "WestWall_Top",
+                    new Vector2(-halfWidth - WALL_THICKNESS / 2f, halfHeight / 2f + DOOR_WIDTH / 4f),
+                    new Vector2(WALL_THICKNESS, halfHeight - DOOR_WIDTH / 2f));
+                CreateWallCollider(wallsContainer, "WestWall_Bottom",
+                    new Vector2(-halfWidth - WALL_THICKNESS / 2f, -halfHeight / 2f - DOOR_WIDTH / 4f),
+                    new Vector2(WALL_THICKNESS, halfHeight - DOOR_WIDTH / 2f));
+            }
+            else
+            {
+                CreateWallCollider(wallsContainer, "WestWall",
+                    new Vector2(-halfWidth - WALL_THICKNESS / 2f, 0),
+                    new Vector2(WALL_THICKNESS, ROOM_HEIGHT + WALL_THICKNESS * 2));
+            }
+
+            // East wall (right)
+            bool hasEastDoor = roomData.eastDoor?.exists == true;
+            if (hasEastDoor)
+            {
+                CreateWallCollider(wallsContainer, "EastWall_Top",
+                    new Vector2(halfWidth + WALL_THICKNESS / 2f, halfHeight / 2f + DOOR_WIDTH / 4f),
+                    new Vector2(WALL_THICKNESS, halfHeight - DOOR_WIDTH / 2f));
+                CreateWallCollider(wallsContainer, "EastWall_Bottom",
+                    new Vector2(halfWidth + WALL_THICKNESS / 2f, -halfHeight / 2f - DOOR_WIDTH / 4f),
+                    new Vector2(WALL_THICKNESS, halfHeight - DOOR_WIDTH / 2f));
+            }
+            else
+            {
+                CreateWallCollider(wallsContainer, "EastWall",
+                    new Vector2(halfWidth + WALL_THICKNESS / 2f, 0),
+                    new Vector2(WALL_THICKNESS, ROOM_HEIGHT + WALL_THICKNESS * 2));
+            }
+        }
+
+        private void CreateWallCollider(GameObject parent, string name, Vector2 position, Vector2 size)
+        {
+            var wall = new GameObject(name);
+            wall.transform.SetParent(parent.transform);
+            wall.transform.localPosition = position;
+
+            var collider = wall.AddComponent<BoxCollider2D>();
+            collider.size = size;
+            collider.isTrigger = false; // Solid collider, not trigger
+
+            // Set to Walls layer if it exists
+            int wallLayer = LayerMask.NameToLayer("Walls");
+            if (wallLayer >= 0)
+            {
+                wall.layer = wallLayer;
+            }
         }
 
         private void SetupBackground()

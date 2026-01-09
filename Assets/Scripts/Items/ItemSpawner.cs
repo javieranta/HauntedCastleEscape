@@ -93,7 +93,14 @@ namespace HauntedCastle.Items
 
             foreach (var itemSpawn in roomData.itemSpawns)
             {
-                SpawnItem(itemSpawn, roomData.roomId);
+                try
+                {
+                    SpawnItem(itemSpawn, roomData.roomId);
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"[ItemSpawner] Failed to spawn item: {ex.Message}");
+                }
             }
 
             Debug.Log($"[ItemSpawner] Spawned {_currentRoomItems.Count} items in {roomData.roomId}");
@@ -170,14 +177,14 @@ namespace HauntedCastle.Items
             itemObj.transform.SetParent(itemContainer);
             itemObj.transform.position = position;
 
-            // Add pickup component
-            var pickup = itemObj.AddComponent<ItemPickup>();
-            pickup.Initialize(itemData);
-
-            // Add collider
+            // Add collider FIRST - ItemPickup has [RequireComponent(typeof(Collider2D))]
             var collider = itemObj.AddComponent<CircleCollider2D>();
             collider.radius = 0.4f;
             collider.isTrigger = true;
+
+            // Now add pickup component (after collider exists)
+            var pickup = itemObj.AddComponent<ItemPickup>();
+            pickup.Initialize(itemData);
 
             return itemObj;
         }

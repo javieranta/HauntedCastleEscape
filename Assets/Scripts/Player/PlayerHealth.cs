@@ -16,8 +16,8 @@ namespace HauntedCastle.Player
         [SerializeField] private int startingLives = 3;
 
         [Header("Energy Drain")]
-        [SerializeField] private float passiveDrainRate = 1f;        // Energy per second (idle)
-        [SerializeField] private float movementDrainRate = 2f;       // Additional drain while moving
+        [SerializeField] private float passiveDrainRate = 0.5f;      // Energy per second (idle) - 200 seconds to drain
+        [SerializeField] private float movementDrainRate = 0.5f;     // Additional drain while moving
         [SerializeField] private bool drainWhileMoving = true;
 
         [Header("Damage")]
@@ -94,8 +94,16 @@ namespace HauntedCastle.Player
             _isDead = false;
             _isInvulnerable = false;
 
+            // Ensure player can move on initialization
+            if (_playerController != null)
+            {
+                _playerController.CanMove = true;
+            }
+
             OnEnergyChanged?.Invoke(_currentEnergy, maxEnergy);
             OnLivesChanged?.Invoke(_currentLives);
+
+            Debug.Log($"[PlayerHealth] Initialized: Energy={_currentEnergy}, Lives={_currentLives}, CanMove=true");
         }
 
         /// <summary>

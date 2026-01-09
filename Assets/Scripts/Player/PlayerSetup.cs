@@ -82,12 +82,28 @@ namespace HauntedCastle.Player
             if (playerAnimator == null) playerAnimator = GetComponent<PlayerAnimator>();
             if (playerAnimator == null) playerAnimator = gameObject.AddComponent<PlayerAnimator>();
 
-            // Input handling
+            // Input handling - MUST configure with InputActions asset
             var playerInput = GetComponent<PlayerInput>();
             if (playerInput == null)
             {
                 playerInput = gameObject.AddComponent<PlayerInput>();
-                // PlayerInput will be configured via InputActions asset
+            }
+
+            // Load and assign InputActions asset from Resources
+            if (playerInput.actions == null)
+            {
+                var inputActionsAsset = Resources.Load<InputActionAsset>("GameInputActions");
+                if (inputActionsAsset != null)
+                {
+                    playerInput.actions = inputActionsAsset;
+                    playerInput.defaultActionMap = "Player";
+                    playerInput.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
+                    Debug.Log("[PlayerSetup] Input actions configured successfully");
+                }
+                else
+                {
+                    Debug.LogError("[PlayerSetup] Could not load GameInputActions from Resources!");
+                }
             }
 
             if (inputHandler == null) inputHandler = GetComponent<PlayerInputHandler>();
@@ -98,13 +114,30 @@ namespace HauntedCastle.Player
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
-            // Configure sprite renderer
-            spriteRenderer.sortingLayerName = "Player";
-            spriteRenderer.sortingOrder = 0;
+            // Configure sprite renderer (use Default if Player sorting layer doesn't exist)
+            if (SortingLayer.NameToID("Player") != 0)
+            {
+                spriteRenderer.sortingLayerName = "Player";
+            }
+            else
+            {
+                spriteRenderer.sortingLayerName = "Default";
+            }
+            spriteRenderer.sortingOrder = 10; // Above most objects
 
-            // Set tag and layer
+            // Set tag and layer (handle missing layer gracefully)
             gameObject.tag = "Player";
-            gameObject.layer = LayerMask.NameToLayer("Player");
+            int playerLayer = LayerMask.NameToLayer("Player");
+            if (playerLayer >= 0)
+            {
+                gameObject.layer = playerLayer;
+            }
+            else
+            {
+                // Use default layer if "Player" layer doesn't exist
+                gameObject.layer = 0;
+                Debug.LogWarning("[PlayerSetup] 'Player' layer not found, using default layer");
+            }
         }
 
         /// <summary>

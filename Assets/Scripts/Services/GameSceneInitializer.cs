@@ -4,6 +4,7 @@ using HauntedCastle.Inventory;
 using HauntedCastle.Items;
 using HauntedCastle.Enemies;
 using HauntedCastle.Audio;
+using HauntedCastle.Visuals;
 
 namespace HauntedCastle.Services
 {
@@ -132,6 +133,20 @@ namespace HauntedCastle.Services
                 audioObj.AddComponent<AudioManager>();
             }
 
+            // Ensure RoomVisualizer exists
+            if (RoomVisualizer.Instance == null)
+            {
+                var rvObj = new GameObject("RoomVisualizer");
+                rvObj.AddComponent<RoomVisualizer>();
+            }
+
+            // Ensure GameVisualInitializer exists (handles AudioListener, lighting, etc.)
+            if (FindFirstObjectByType<GameVisualInitializer>() == null)
+            {
+                var gviObj = new GameObject("GameVisualInitializer");
+                gviObj.AddComponent<GameVisualInitializer>();
+            }
+
             // Setup room container
             if (roomContainer == null)
             {
@@ -157,6 +172,9 @@ namespace HauntedCastle.Services
 
         private void InitializeGame()
         {
+            // Ensure time scale is normal (in case coming from paused state)
+            Time.timeScale = 1f;
+
             // Update game state
             if (GameManager.Instance != null)
             {
@@ -169,7 +187,7 @@ namespace HauntedCastle.Services
                 RoomManager.Instance.LoadStartingRoom();
             }
 
-            Debug.Log("[GameSceneInitializer] Game initialized");
+            Debug.Log($"[GameSceneInitializer] Game initialized. TimeScale={Time.timeScale}");
         }
     }
 }

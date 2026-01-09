@@ -70,6 +70,9 @@ namespace HauntedCastle.Player
 
         private void Start()
         {
+            // Ensure CanMove is true on start
+            _canMove = true;
+
             // Load character data from GameManager selection
             if (GameManager.Instance != null && characterData == null)
             {
@@ -82,6 +85,8 @@ namespace HauntedCastle.Player
             {
                 RoomManager.Instance.OnRoomLoadCompleted += OnRoomLoaded;
             }
+
+            Debug.Log($"[PlayerController] Started. CanMove={_canMove}, Position={transform.position}");
         }
 
         private void OnDestroy()
@@ -292,6 +297,12 @@ namespace HauntedCastle.Player
         public void OnMove(InputAction.CallbackContext context)
         {
             _moveInput = context.ReadValue<Vector2>();
+
+            // Debug log to verify input is being received
+            if (_moveInput.sqrMagnitude > 0.01f)
+            {
+                Debug.Log($"[PlayerController] Move input: {_moveInput}, CanMove={_canMove}");
+            }
         }
 
         /// <summary>

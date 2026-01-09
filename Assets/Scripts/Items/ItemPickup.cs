@@ -3,6 +3,7 @@ using HauntedCastle.Data;
 using HauntedCastle.Player;
 using HauntedCastle.Inventory;
 using HauntedCastle.Utils;
+using HauntedCastle.Visuals;
 
 namespace HauntedCastle.Items
 {
@@ -71,9 +72,22 @@ namespace HauntedCastle.Items
                 UpdateVisual();
             }
 
-            // Set layer and tag
-            gameObject.layer = LayerMask.NameToLayer("Items");
-            gameObject.tag = "Item";
+            // Set layer if it exists
+            int itemLayer = LayerMask.NameToLayer("Items");
+            if (itemLayer >= 0)
+            {
+                gameObject.layer = itemLayer;
+            }
+
+            // Set tag (create if needed)
+            try
+            {
+                gameObject.tag = "Item";
+            }
+            catch
+            {
+                // Tag might not exist, ignore
+            }
         }
 
         private void Update()
@@ -105,10 +119,14 @@ namespace HauntedCastle.Items
             spriteRenderer.sprite = itemData.worldSprite ?? itemData.icon;
             spriteRenderer.color = itemData.tintColor;
 
-            // If no sprite, use placeholder sprite generator
+            // If no sprite, use pixel art sprite provider for better visuals
             if (spriteRenderer.sprite == null)
             {
-                spriteRenderer.sprite = PlaceholderSpriteGenerator.GetItemSprite(itemData.itemType, itemData.keyColor);
+                spriteRenderer.sprite = PixelArtSpriteProvider.GetItemSprite(
+                    itemData.itemType,
+                    itemData.keyColor,
+                    itemData.subType
+                );
             }
 
             // Configure rendering

@@ -19,25 +19,27 @@ namespace HauntedCastle.Services
         {
             if (createTestRooms)
             {
+                // Ensure RoomManager exists before creating rooms
+                EnsureRoomManager();
                 CreateTestRooms();
+            }
+        }
+
+        private void EnsureRoomManager()
+        {
+            if (RoomManager.Instance == null)
+            {
+                var rmObj = new GameObject("RoomManager");
+                rmObj.AddComponent<RoomManager>();
             }
         }
 
         private void CreateTestRooms()
         {
-            // Wait for RoomManager to be available
-            StartCoroutine(CreateRoomsWhenReady());
-        }
-
-        private System.Collections.IEnumerator CreateRoomsWhenReady()
-        {
-            // Wait a frame for managers to initialize
-            yield return null;
-
             if (RoomManager.Instance == null)
             {
                 Debug.LogError("[TestRoomSetup] RoomManager not found!");
-                yield break;
+                return;
             }
 
             // Create a 3x3 grid of test rooms on floor 0
@@ -230,6 +232,12 @@ namespace HauntedCastle.Services
             }
 
             Debug.Log($"[TestRoomSetup] Created {rooms.Count} test rooms");
+
+            // Trigger starting room load now that rooms are registered
+            if (RoomManager.Instance != null && RoomManager.Instance.CurrentRoomData == null)
+            {
+                RoomManager.Instance.LoadStartingRoom();
+            }
         }
 
         private RoomData CreateRoomData(string id, string name, int floor, bool isStart = false, bool isExit = false)

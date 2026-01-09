@@ -1,15 +1,18 @@
 using UnityEngine;
 using System.Collections.Generic;
+using HauntedCastle.Visuals;
 
 namespace HauntedCastle.Utils
 {
     /// <summary>
     /// Generates placeholder sprites at runtime for development/testing.
-    /// These colored shapes help visualize game entities before real art is added.
+    /// Now integrates with PixelArtGenerator for actual pixel art sprites.
+    /// Falls back to colored shapes if pixel art fails.
     /// </summary>
     public static class PlaceholderSpriteGenerator
     {
         private static Dictionary<string, Sprite> _spriteCache = new();
+        private static bool _usePixelArt = true; // Toggle for pixel art vs simple shapes
 
         // Character colors (matching CharacterDatabase)
         public static readonly Color WizardColor = new Color(0.6f, 0.3f, 0.8f);      // Purple
@@ -132,16 +135,31 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetWizardSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetWizardSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetTriangleSprite("Wizard", WizardColor, 32);
         }
 
         public static Sprite GetKnightSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetKnightSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetSquareSprite("Knight", KnightColor, 32);
         }
 
         public static Sprite GetSerfSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetSerfSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetCircleSprite("Serf", SerfColor, 32);
         }
 
@@ -149,51 +167,101 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetGhostSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetGhostSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetCircleSprite("Ghost", GhostColor, 24);
         }
 
         public static Sprite GetSkeletonSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetSkeletonSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetSquareSprite("Skeleton", SkeletonColor, 28);
         }
 
         public static Sprite GetSpiderSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetSpiderSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetCircleSprite("Spider", SpiderColor, 20);
         }
 
         public static Sprite GetBatSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetBatSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetDiamondSprite("Bat", BatColor, 20);
         }
 
         public static Sprite GetDemonSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetDemonSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetTriangleSprite("Demon", DemonColor, 32);
         }
 
         public static Sprite GetMummySprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetMummySprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetSquareSprite("Mummy", MummyColor, 28);
         }
 
         public static Sprite GetWitchSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetWitchSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetTriangleSprite("Witch", WitchColor, 28);
         }
 
         public static Sprite GetVampireSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetVampireSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetDiamondSprite("Vampire", VampireColor, 32);
         }
 
         public static Sprite GetWerewolfSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetWerewolfSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetSquareSprite("Werewolf", WerewolfColor, 32);
         }
 
         public static Sprite GetReaperSprite()
         {
+            if (_usePixelArt)
+            {
+                try { return PixelArtGenerator.GetReaperSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetTriangleSprite("Reaper", ReaperColor, 36);
         }
 

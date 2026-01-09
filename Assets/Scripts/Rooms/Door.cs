@@ -62,9 +62,27 @@ namespace HauntedCastle.Rooms
             // Update visual
             UpdateVisual();
 
-            // Set tag
-            gameObject.tag = "Door";
-            gameObject.layer = LayerMask.NameToLayer("Doors");
+            // Set tag (create if needed)
+            try
+            {
+                gameObject.tag = "Door";
+            }
+            catch
+            {
+                // Tag might not exist, ignore
+            }
+
+            // Set layer if it exists
+            int doorLayer = LayerMask.NameToLayer("Doors");
+            if (doorLayer >= 0)
+            {
+                gameObject.layer = doorLayer;
+            }
+            else
+            {
+                // Fallback to Default layer
+                gameObject.layer = 0;
+            }
         }
 
         /// <summary>
@@ -236,29 +254,56 @@ namespace HauntedCastle.Rooms
         {
             if (!other.CompareTag("Player")) return;
 
-            // Check if player can pass using inventory
-            if (CanPass())
+            // When entering a locked door, try to unlock it
+            if (DoorType == DoorType.Locked && !isUnlocked)
             {
-                // Trigger room transition
-                if (RoomManager.Instance != null)
-                {
-                    RoomManager.Instance.TransitionThroughDoor(direction);
-                }
-            }
-            else if (DoorType == DoorType.Locked)
-            {
-                // Try to auto-unlock with player's key
                 if (!TryUnlockWithInventory())
                 {
                     Debug.Log($"[Door] Need {RequiredKey} key to unlock");
                 }
-                else
+            }
+        }
+
+        private void OnTriggerExit2D(Collider2D other)
+        {
+            if (!other.CompareTag("Player")) return;
+
+            // Check if player exited through the door (in the direction of the destination)
+            // AND is properly aligned with the door opening
+            Vector2 playerPos = other.transform.position;
+            Vector2 doorPos = transform.position;
+
+            const float DOOR_ALIGNMENT_TOLERANCE = 0.8f; // Player must be within this distance of door center
+
+            bool exitedThroughDoor = false;
+            bool properlyAligned = false;
+
+            switch (direction)
+            {
+                case DoorDirection.North:
+                    exitedThroughDoor = playerPos.y > doorPos.y;
+                    properlyAligned = Mathf.Abs(playerPos.x - doorPos.x) < DOOR_ALIGNMENT_TOLERANCE;
+                    break;
+                case DoorDirection.South:
+                    exitedThroughDoor = playerPos.y < doorPos.y;
+                    properlyAligned = Mathf.Abs(playerPos.x - doorPos.x) < DOOR_ALIGNMENT_TOLERANCE;
+                    break;
+                case DoorDirection.East:
+                    exitedThroughDoor = playerPos.x > doorPos.x;
+                    properlyAligned = Mathf.Abs(playerPos.y - doorPos.y) < DOOR_ALIGNMENT_TOLERANCE;
+                    break;
+                case DoorDirection.West:
+                    exitedThroughDoor = playerPos.x < doorPos.x;
+                    properlyAligned = Mathf.Abs(playerPos.y - doorPos.y) < DOOR_ALIGNMENT_TOLERANCE;
+                    break;
+            }
+
+            // Only transition if player exited in the correct direction, is aligned, and can pass
+            if (exitedThroughDoor && properlyAligned && CanPass())
+            {
+                if (RoomManager.Instance != null)
                 {
-                    // Door was unlocked, now pass through
-                    if (RoomManager.Instance != null)
-                    {
-                        RoomManager.Instance.TransitionThroughDoor(direction);
-                    }
+                    RoomManager.Instance.TransitionThroughDoor(direction);
                 }
             }
         }

@@ -54,7 +54,18 @@ namespace HauntedCastle.Services
         public void ChangeState(GameState newState)
         {
             CurrentState = newState;
-            Debug.Log($"[GameManager] State changed to: {newState}");
+
+            // Ensure time scale is correct for each state
+            if (newState == GameState.Playing)
+            {
+                Time.timeScale = 1f;
+            }
+            else if (newState == GameState.Paused)
+            {
+                Time.timeScale = 0f;
+            }
+
+            Debug.Log($"[GameManager] State changed to: {newState}, TimeScale={Time.timeScale}");
         }
 
         public void LoadScene(string sceneName)
@@ -64,12 +75,16 @@ namespace HauntedCastle.Services
 
         public void StartNewGame()
         {
+            // Reset time scale in case it was paused
+            Time.timeScale = 1f;
             ChangeState(GameState.Playing);
             LoadScene(SCENE_GAME);
         }
 
         public void GoToMainMenu()
         {
+            // Reset time scale in case game was paused
+            Time.timeScale = 1f;
             ChangeState(GameState.MainMenu);
             LoadScene(SCENE_MAIN_MENU);
         }
@@ -82,6 +97,8 @@ namespace HauntedCastle.Services
 
         public void TriggerGameOver()
         {
+            // Reset time scale
+            Time.timeScale = 1f;
             ChangeState(GameState.GameOver);
             LoadScene(SCENE_GAME_OVER);
         }
