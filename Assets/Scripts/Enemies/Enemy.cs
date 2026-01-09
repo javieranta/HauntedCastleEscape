@@ -3,6 +3,7 @@ using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Player;
 using HauntedCastle.Inventory;
+using HauntedCastle.Utils;
 
 namespace HauntedCastle.Enemies
 {
@@ -142,46 +143,11 @@ namespace HauntedCastle.Enemies
             spriteRenderer.color = enemyData.tintColor;
             spriteRenderer.sortingLayerName = "Enemies";
 
-            // Create placeholder if no sprite
+            // Create placeholder if no sprite - use type-specific shapes
             if (spriteRenderer.sprite == null)
             {
-                spriteRenderer.sprite = CreatePlaceholderSprite();
+                spriteRenderer.sprite = PlaceholderSpriteGenerator.GetEnemySprite(enemyData.enemyType);
             }
-        }
-
-        private Sprite CreatePlaceholderSprite()
-        {
-            int size = 14;
-            Texture2D texture = new Texture2D(size, size);
-            texture.filterMode = FilterMode.Point;
-
-            Color enemyColor = enemyData?.tintColor ?? Color.red;
-            Color[] pixels = new Color[size * size];
-
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    // Create diamond shape for enemies
-                    int centerX = size / 2;
-                    int centerY = size / 2;
-                    int dist = Mathf.Abs(x - centerX) + Mathf.Abs(y - centerY);
-
-                    if (dist <= size / 2 - 1)
-                    {
-                        pixels[y * size + x] = enemyColor;
-                    }
-                    else
-                    {
-                        pixels[y * size + x] = Color.clear;
-                    }
-                }
-            }
-
-            texture.SetPixels(pixels);
-            texture.Apply();
-
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 14f);
         }
 
         #region AI State Machine

@@ -2,6 +2,7 @@ using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Player;
 using HauntedCastle.Inventory;
+using HauntedCastle.Utils;
 
 namespace HauntedCastle.Items
 {
@@ -104,70 +105,15 @@ namespace HauntedCastle.Items
             spriteRenderer.sprite = itemData.worldSprite ?? itemData.icon;
             spriteRenderer.color = itemData.tintColor;
 
-            // If no sprite, create placeholder
+            // If no sprite, use placeholder sprite generator
             if (spriteRenderer.sprite == null)
             {
-                spriteRenderer.sprite = CreatePlaceholderSprite();
+                spriteRenderer.sprite = PlaceholderSpriteGenerator.GetItemSprite(itemData.itemType, itemData.keyColor);
             }
 
             // Configure rendering
             spriteRenderer.sortingLayerName = "Items";
             spriteRenderer.sortingOrder = 0;
-        }
-
-        private Sprite CreatePlaceholderSprite()
-        {
-            int size = 12;
-            Texture2D texture = new Texture2D(size, size);
-            texture.filterMode = FilterMode.Point;
-
-            Color itemColor = GetItemTypeColor();
-            Color[] pixels = new Color[size * size];
-
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    // Create simple shape based on item type
-                    bool isBorder = x == 0 || x == size - 1 || y == 0 || y == size - 1;
-                    pixels[y * size + x] = isBorder ? (itemColor * 0.7f) : itemColor;
-                }
-            }
-
-            texture.SetPixels(pixels);
-            texture.Apply();
-
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 12f);
-        }
-
-        private Color GetItemTypeColor()
-        {
-            if (itemData == null) return Color.white;
-
-            return itemData.itemType switch
-            {
-                ItemType.Food => new Color(0.4f, 0.8f, 0.4f),      // Green
-                ItemType.Key => GetKeyColorValue(itemData.keyColor),
-                ItemType.KeyPiece => new Color(1f, 0.84f, 0f),     // Gold
-                ItemType.Treasure => new Color(1f, 0.6f, 0.2f),    // Orange
-                ItemType.Special => new Color(0.8f, 0.2f, 0.8f),   // Purple
-                ItemType.GreatKey => new Color(1f, 1f, 0.5f),      // Bright gold
-                _ => Color.white
-            };
-        }
-
-        private Color GetKeyColorValue(KeyColor keyColor)
-        {
-            return keyColor switch
-            {
-                KeyColor.Red => Color.red,
-                KeyColor.Blue => Color.blue,
-                KeyColor.Green => Color.green,
-                KeyColor.Yellow => Color.yellow,
-                KeyColor.Cyan => Color.cyan,
-                KeyColor.Magenta => Color.magenta,
-                _ => Color.white
-            };
         }
 
         /// <summary>

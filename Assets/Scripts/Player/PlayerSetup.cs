@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using HauntedCastle.Core.GameState;
 using HauntedCastle.Data;
 using HauntedCastle.Services;
+using HauntedCastle.Utils;
 
 namespace HauntedCastle.Player
 {
@@ -143,67 +144,16 @@ namespace HauntedCastle.Player
                 playerAnimator.SetCharacterData(_currentCharacter);
             }
 
-            // Set visual appearance
+            // Set visual appearance - use character-specific placeholder shapes
             if (spriteRenderer != null)
             {
-                spriteRenderer.color = _currentCharacter.characterColor;
-
-                // Create a simple colored square sprite if none exists
-                if (spriteRenderer.sprite == null)
-                {
-                    spriteRenderer.sprite = CreatePlaceholderSprite();
-                }
+                spriteRenderer.color = Color.white; // Let the sprite color show through
+                spriteRenderer.sprite = PlaceholderSpriteGenerator.GetCharacterSprite(characterType);
             }
 
             _initialized = true;
 
             Debug.Log($"[PlayerSetup] Initialized as {_currentCharacter.characterName}");
-        }
-
-        /// <summary>
-        /// Creates a placeholder sprite for the player.
-        /// </summary>
-        private Sprite CreatePlaceholderSprite()
-        {
-            // Create a simple 16x16 texture
-            int size = 16;
-            Texture2D texture = new Texture2D(size, size);
-            texture.filterMode = FilterMode.Point;
-
-            Color[] pixels = new Color[size * size];
-
-            // Fill with character color (with slight border)
-            Color mainColor = _currentCharacter?.characterColor ?? Color.white;
-            Color borderColor = mainColor * 0.7f;
-            borderColor.a = 1f;
-
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    // Border pixels
-                    if (x == 0 || x == size - 1 || y == 0 || y == size - 1)
-                    {
-                        pixels[y * size + x] = borderColor;
-                    }
-                    // Inner pixels
-                    else
-                    {
-                        pixels[y * size + x] = mainColor;
-                    }
-                }
-            }
-
-            texture.SetPixels(pixels);
-            texture.Apply();
-
-            // Create sprite (16 pixels per unit)
-            return Sprite.Create(
-                texture,
-                new Rect(0, 0, size, size),
-                new Vector2(0.5f, 0.5f),
-                16f
-            );
         }
 
         /// <summary>

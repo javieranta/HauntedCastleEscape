@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using HauntedCastle.Data;
+using HauntedCastle.Utils;
 
 namespace HauntedCastle.Player
 {
@@ -173,12 +174,7 @@ namespace HauntedCastle.Player
                 true
             );
 
-            // Different color for thrown weapon
-            var sr = projObj.GetComponent<SpriteRenderer>();
-            if (sr != null)
-            {
-                sr.color = new Color(0.8f, 0.6f, 0.3f); // Brown for thrown object
-            }
+            // Thrown weapon sprite already set in CreateDefaultProjectile
 
             Debug.Log($"[PlayerCombat] Threw weapon in direction {direction}");
         }
@@ -190,9 +186,9 @@ namespace HauntedCastle.Player
             projObj.layer = LayerMask.NameToLayer("Projectiles");
             projObj.tag = "Projectile";
 
-            // Add sprite
+            // Add sprite with placeholder
             var sr = projObj.AddComponent<SpriteRenderer>();
-            sr.color = GetProjectileColor();
+            sr.sprite = GetProjectileSprite();
             sr.sortingLayerName = "Projectiles";
             sr.sortingOrder = 0;
 
@@ -209,16 +205,17 @@ namespace HauntedCastle.Player
             return projObj;
         }
 
-        private Color GetProjectileColor()
+        private Sprite GetProjectileSprite()
         {
-            if (characterData == null) return Color.white;
+            if (characterData == null)
+                return PlaceholderSpriteGenerator.GetCircleSprite("DefaultProjectile", Color.white, 12);
 
             return characterData.attackType switch
             {
-                AttackType.Projectile => new Color(0.5f, 0.8f, 1f), // Blue for magic
-                AttackType.Melee => Color.white,
-                AttackType.Thrown => new Color(0.8f, 0.6f, 0.3f),   // Brown for thrown
-                _ => Color.white
+                AttackType.Projectile => PlaceholderSpriteGenerator.GetMagicProjectileSprite(),
+                AttackType.Melee => PlaceholderSpriteGenerator.GetSwordSwingSprite(),
+                AttackType.Thrown => PlaceholderSpriteGenerator.GetThrownProjectileSprite(),
+                _ => PlaceholderSpriteGenerator.GetCircleSprite("DefaultProjectile", Color.white, 12)
             };
         }
 
@@ -229,7 +226,7 @@ namespace HauntedCastle.Player
             effectObj.transform.position = position;
 
             var sr = effectObj.AddComponent<SpriteRenderer>();
-            sr.color = new Color(1f, 1f, 1f, 0.7f);
+            sr.sprite = PlaceholderSpriteGenerator.GetSwordSwingSprite();
             sr.sortingLayerName = "Projectiles";
 
             // Rotate based on direction
