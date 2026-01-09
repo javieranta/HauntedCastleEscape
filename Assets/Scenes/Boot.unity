@@ -239,8 +239,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 200}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000000, type: 3}
+  m_Script: {fileID: 11500000, guid: 86bff244121c58b49a27abc5a66efbf2, type: 3}
   m_Name:
-  m_EditorClassIdentifier: HauntedCastle.Services.BootLoader
   bootDelay: 1.0
   skipToGame: 0
