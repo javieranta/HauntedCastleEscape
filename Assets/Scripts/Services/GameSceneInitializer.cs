@@ -2,6 +2,7 @@ using UnityEngine;
 using HauntedCastle.UI;
 using HauntedCastle.Inventory;
 using HauntedCastle.Items;
+using HauntedCastle.Enemies;
 
 namespace HauntedCastle.Services
 {
@@ -93,6 +94,13 @@ namespace HauntedCastle.Services
             {
                 var isObj = new GameObject("ItemSpawner");
                 isObj.AddComponent<ItemSpawner>();
+            }
+
+            // Ensure EnemySpawner exists
+            if (EnemySpawner.Instance == null)
+            {
+                var esObj = new GameObject("EnemySpawner");
+                esObj.AddComponent<EnemySpawner>();
             }
 
             // Ensure PlayerHUD exists

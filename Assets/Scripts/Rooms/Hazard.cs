@@ -1,5 +1,6 @@
 using UnityEngine;
 using HauntedCastle.Data;
+using HauntedCastle.Player;
 
 namespace HauntedCastle.Rooms
 {
@@ -120,12 +121,14 @@ namespace HauntedCastle.Rooms
 
         private void ApplyDamageToPlayer()
         {
-            // This will be properly connected to the player health system in Milestone 2
-            // For now, just log
             float damage = damagePerSecond * Time.deltaTime;
 
-            // TODO: Get player reference and apply damage
-            // PlayerController.Instance?.TakeDamage(damage);
+            // Get player health and apply damage
+            var playerHealth = Player.PlayerController.Instance?.GetComponent<Player.PlayerHealth>();
+            if (playerHealth != null && !playerHealth.IsInvulnerable)
+            {
+                playerHealth.DrainEnergy(damage);
+            }
         }
 
         private void OnDrawGizmos()
