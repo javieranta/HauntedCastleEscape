@@ -240,9 +240,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 200}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000001, type: 3}
+  m_Script: {fileID: 11500000, guid: c3345013a9205b24889ac31cfd4d7524, type: 3}
   m_Name:
-  m_EditorClassIdentifier: HauntedCastle.Services.GameSceneInitializer
   roomManagerPrefab: {fileID: 0}
   transitionManagerPrefab: {fileID: 0}
   playerSpawnerPrefab: {fileID: 0}
@@ -257,9 +256,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 200}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000002, type: 3}
+  m_Script: {fileID: 11500000, guid: b81dd88e55d79ee4588ff486e614170b, type: 3}
   m_Name:
-  m_EditorClassIdentifier: HauntedCastle.Services.TestRoomSetup
 --- !u!1 &300
 GameObject:
   m_ObjectHideFlags: 0
@@ -332,6 +330,5 @@ MonoBehaviour:
   m_GameObject: {fileID: 400}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000003, type: 3}
+  m_Script: {fileID: 11500000, guid: 69d2e6fc9cd88fd4cad27f06e91b9a39, type: 3}
   m_Name:
-  m_EditorClassIdentifier: HauntedCastle.Debug.RoomDebugUI
