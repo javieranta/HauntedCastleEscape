@@ -3,6 +3,7 @@ using HauntedCastle.UI;
 using HauntedCastle.Inventory;
 using HauntedCastle.Items;
 using HauntedCastle.Enemies;
+using HauntedCastle.Audio;
 
 namespace HauntedCastle.Services
 {
@@ -115,6 +116,20 @@ namespace HauntedCastle.Services
             {
                 var invUIObj = new GameObject("InventoryUI");
                 invUIObj.AddComponent<InventoryUI>();
+            }
+
+            // Ensure PauseMenuUI exists
+            if (FindFirstObjectByType<PauseMenuUI>() == null)
+            {
+                var pauseObj = new GameObject("PauseMenuUI");
+                pauseObj.AddComponent<PauseMenuUI>();
+            }
+
+            // Ensure AudioManager exists
+            if (AudioManager.Instance == null)
+            {
+                var audioObj = new GameObject("AudioManager");
+                audioObj.AddComponent<AudioManager>();
             }
 
             // Setup room container

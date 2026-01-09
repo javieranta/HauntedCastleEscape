@@ -10,6 +10,9 @@ namespace HauntedCastle.Core.GameState
     [Serializable]
     public class GameSession
     {
+        // Static selected character (persists across sessions until changed)
+        public static HauntedCastle.Services.CharacterType SelectedCharacter { get; set; } = HauntedCastle.Services.CharacterType.Knight;
+
         // Player state
         public int Lives { get; set; } = 3;
         public float Energy { get; set; } = 100f;
