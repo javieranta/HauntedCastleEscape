@@ -269,11 +269,11 @@ namespace HauntedCastle.Rooms
             if (!other.CompareTag("Player")) return;
 
             // Check if player exited through the door (in the direction of the destination)
-            // AND is properly aligned with the door opening
             Vector2 playerPos = other.transform.position;
             Vector2 doorPos = transform.position;
 
-            const float DOOR_ALIGNMENT_TOLERANCE = 0.8f; // Player must be within this distance of door center
+            // Much more forgiving alignment tolerance
+            const float DOOR_ALIGNMENT_TOLERANCE = 2.5f;
 
             bool exitedThroughDoor = false;
             bool properlyAligned = false;
@@ -281,28 +281,31 @@ namespace HauntedCastle.Rooms
             switch (direction)
             {
                 case DoorDirection.North:
-                    exitedThroughDoor = playerPos.y > doorPos.y;
+                    exitedThroughDoor = playerPos.y > doorPos.y + 0.3f;
                     properlyAligned = Mathf.Abs(playerPos.x - doorPos.x) < DOOR_ALIGNMENT_TOLERANCE;
                     break;
                 case DoorDirection.South:
-                    exitedThroughDoor = playerPos.y < doorPos.y;
+                    exitedThroughDoor = playerPos.y < doorPos.y - 0.3f;
                     properlyAligned = Mathf.Abs(playerPos.x - doorPos.x) < DOOR_ALIGNMENT_TOLERANCE;
                     break;
                 case DoorDirection.East:
-                    exitedThroughDoor = playerPos.x > doorPos.x;
+                    exitedThroughDoor = playerPos.x > doorPos.x + 0.3f;
                     properlyAligned = Mathf.Abs(playerPos.y - doorPos.y) < DOOR_ALIGNMENT_TOLERANCE;
                     break;
                 case DoorDirection.West:
-                    exitedThroughDoor = playerPos.x < doorPos.x;
+                    exitedThroughDoor = playerPos.x < doorPos.x - 0.3f;
                     properlyAligned = Mathf.Abs(playerPos.y - doorPos.y) < DOOR_ALIGNMENT_TOLERANCE;
                     break;
             }
 
+            Debug.Log($"[Door] OnTriggerExit2D - dir={direction}, exited={exitedThroughDoor}, aligned={properlyAligned}, canPass={CanPass()}, dest={DestinationRoomId}");
+
             // Only transition if player exited in the correct direction, is aligned, and can pass
             if (exitedThroughDoor && properlyAligned && CanPass())
             {
-                if (RoomManager.Instance != null)
+                if (RoomManager.Instance != null && !RoomManager.Instance.IsTransitioning)
                 {
+                    Debug.Log($"[Door] Transitioning through {direction} door to {DestinationRoomId}");
                     RoomManager.Instance.TransitionThroughDoor(direction);
                 }
             }

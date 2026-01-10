@@ -6,13 +6,17 @@ namespace HauntedCastle.Utils
 {
     /// <summary>
     /// Generates placeholder sprites at runtime for development/testing.
-    /// Now integrates with PixelArtGenerator for actual pixel art sprites.
-    /// Falls back to colored shapes if pixel art fails.
+    /// Integrates with UltraHDSpriteGenerator (128x128 HD) as primary source.
+    /// Falls back to PhotorealisticSpriteGenerator (64x64), EnhancedSpriteGenerator (32x32),
+    /// PixelArtGenerator (16x16), or simple shapes.
     /// </summary>
     public static class PlaceholderSpriteGenerator
     {
         private static Dictionary<string, Sprite> _spriteCache = new();
-        private static bool _usePixelArt = true; // Toggle for pixel art vs simple shapes
+        private static bool _useUltraHDSprites = true; // Use 128x128 Ultra HD sprites (primary - best quality!)
+        private static bool _usePhotorealisticSprites = true; // Use 64x64 HD sprites (fallback)
+        private static bool _useEnhancedSprites = true; // Use 32x32 enhanced sprites
+        private static bool _usePixelArt = true; // Fallback to 16x16 pixel art
 
         // Character colors (matching CharacterDatabase)
         public static readonly Color WizardColor = new Color(0.6f, 0.3f, 0.8f);      // Purple
@@ -135,6 +139,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetWizardSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetWizardSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetWizardSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetWizardSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetWizardSprite(); }
@@ -145,6 +164,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetKnightSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetKnightSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetKnightSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetKnightSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetKnightSprite(); }
@@ -155,6 +189,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetSerfSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetSerfSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetSerfSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetSerfSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetSerfSprite(); }
@@ -167,6 +216,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetGhostSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetGhostSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetGhostSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetGhostSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetGhostSprite(); }
@@ -177,6 +241,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetSkeletonSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetSkeletonSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetSkeletonSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetSkeletonSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetSkeletonSprite(); }
@@ -187,6 +266,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetSpiderSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetSpiderSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetSpiderSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetSpiderSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetSpiderSprite(); }
@@ -197,6 +291,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetBatSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetBatSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetBatSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetBatSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetBatSprite(); }
@@ -207,6 +316,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetDemonSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetDemonSprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetDemonSprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetDevilSprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetDemonSprite(); }
@@ -217,6 +341,21 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetMummySprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetMummySprite(); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetMummySprite(); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetMummySprite(); }
+                catch { /* Fall back to basic pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetMummySprite(); }
@@ -227,6 +366,11 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetWitchSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetWitchSprite(); }
+                catch { /* Fall back to pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetWitchSprite(); }
@@ -237,6 +381,11 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetVampireSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetVampireSprite(); }
+                catch { /* Fall back to pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetVampireSprite(); }
@@ -247,6 +396,11 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetWerewolfSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetWerewolfSprite(); }
+                catch { /* Fall back to pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetWerewolfSprite(); }
@@ -257,12 +411,37 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetReaperSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetReaperSprite(); }
+                catch { /* Fall back to pixel art */ }
+            }
             if (_usePixelArt)
             {
                 try { return PixelArtGenerator.GetReaperSprite(); }
                 catch { /* Fall back to simple shape */ }
             }
             return GetTriangleSprite("Reaper", ReaperColor, 36);
+        }
+
+        public static Sprite GetFrankensteinSprite()
+        {
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetFrankensteinSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetSquareSprite("Frankenstein", new Color(0.4f, 0.5f, 0.4f), 32);
+        }
+
+        public static Sprite GetHunchbackSprite()
+        {
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetHunchbackSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetCircleSprite("Hunchback", new Color(0.7f, 0.65f, 0.55f), 28);
         }
 
         /// <summary>
@@ -304,6 +483,11 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetKeySprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetKeySprite(KeyColor); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetDiamondSprite("Key", KeyColor, 16);
         }
 
@@ -314,6 +498,11 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetFoodSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetFoodSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetCircleSprite("Food", FoodColor, 16);
         }
 
@@ -329,6 +518,11 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetTreasureSprite()
         {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetTreasureSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetDiamondSprite("Treasure", new Color(1f, 0.6f, 0.2f), 16);
         }
 
@@ -376,17 +570,243 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetMagicProjectileSprite()
         {
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetMagicProjectileSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetCircleSprite("MagicProjectile", MagicColor, 12);
         }
 
         public static Sprite GetSwordSwingSprite()
         {
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetSwordSwingSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetSquareSprite("SwordSwing", SwordColor, 24);
         }
 
         public static Sprite GetThrownProjectileSprite()
         {
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetThrownAxeSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
             return GetCircleSprite("ThrownProjectile", ThrownColor, 10);
+        }
+
+        // ==================== Environment Sprites ====================
+
+        public static Sprite GetFloorTileSprite(int floorLevel, int variation = 0)
+        {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetFloorTileSprite(floorLevel, variation); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetFloorTileSprite(floorLevel, variation); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetFloorTile(floorLevel, variation); }
+                catch { /* Fall back to simple shape */ }
+            }
+            Color floorColor = floorLevel switch
+            {
+                0 => new Color(0.25f, 0.22f, 0.2f),  // Basement
+                1 => new Color(0.45f, 0.35f, 0.25f), // Castle
+                2 => new Color(0.5f, 0.48f, 0.45f),  // Tower
+                _ => new Color(0.4f, 0.35f, 0.3f)
+            };
+            return GetSquareSprite($"Floor_{floorLevel}_{variation}", floorColor, 32);
+        }
+
+        public static Sprite GetWallSprite(int floorLevel, bool isVertical = false)
+        {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetWallSprite(floorLevel, isVertical); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetWallSprite(floorLevel, isVertical); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetWallSprite(floorLevel, isVertical); }
+                catch { /* Fall back to simple shape */ }
+            }
+            Color wallColor = floorLevel switch
+            {
+                0 => new Color(0.2f, 0.18f, 0.15f),  // Basement
+                1 => new Color(0.4f, 0.38f, 0.35f),  // Castle
+                2 => new Color(0.45f, 0.43f, 0.4f),  // Tower
+                _ => new Color(0.35f, 0.33f, 0.3f)
+            };
+            return GetSquareSprite($"Wall_{floorLevel}_{isVertical}", wallColor, 32);
+        }
+
+        public static Sprite GetDoorSprite(bool isOpen, string keyType = "")
+        {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetDoorSprite(isOpen, keyType); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetDoorSprite(isOpen, keyType); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetDoorSprite(isOpen, keyType); }
+                catch { /* Fall back to simple shape */ }
+            }
+            Color doorColor = isOpen ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.45f, 0.3f, 0.2f);
+            return GetSquareSprite($"Door_{isOpen}_{keyType}", doorColor, 32);
+        }
+
+        public static Sprite GetStaircaseSprite(bool goingUp)
+        {
+            // PRIORITY: Ultra HD sprites with large, clear UP/DOWN indicators
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetStaircaseSprite(goingUp); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetStaircaseSprite(goingUp); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetStaircaseSprite(goingUp); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetTriangleSprite($"Stairs_{goingUp}", new Color(0.5f, 0.5f, 0.55f), 32);
+        }
+
+        public static Sprite GetTorchSprite(int frame = 0)
+        {
+            if (_useUltraHDSprites)
+            {
+                try { return UltraHDSpriteGenerator.GetTorchSprite(frame); }
+                catch { /* Fall back to photorealistic sprites */ }
+            }
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetTorchSprite(frame); }
+                catch { /* Fall back to enhanced sprites */ }
+            }
+            if (_useEnhancedSprites)
+            {
+                try { return EnhancedSpriteGenerator.GetTorchSprite(frame); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetDiamondSprite($"Torch_{frame}", new Color(1f, 0.6f, 0.2f), 16);
+        }
+
+        // ==================== Decoration Sprites ====================
+
+        public static Sprite GetChainSprite()
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetChainSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetSquareSprite("Chain", new Color(0.35f, 0.32f, 0.28f), 16);
+        }
+
+        public static Sprite GetCobwebSprite()
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetCobwebSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetSquareSprite("Cobweb", new Color(0.9f, 0.9f, 0.88f, 0.5f), 24);
+        }
+
+        public static Sprite GetSkullSprite()
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetSkullSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetCircleSprite("Skull", new Color(0.9f, 0.88f, 0.82f), 16);
+        }
+
+        public static Sprite GetBarrelSprite()
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetBarrelSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetSquareSprite("Barrel", new Color(0.5f, 0.35f, 0.2f), 24);
+        }
+
+        public static Sprite GetChandelierSprite()
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetChandelierSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetDiamondSprite("Chandelier", new Color(0.75f, 0.6f, 0.25f), 32);
+        }
+
+        public static Sprite GetPaintingSprite(int variant = 0)
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetPaintingSprite(variant); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetSquareSprite($"Painting_{variant}", new Color(0.45f, 0.32f, 0.15f), 24);
+        }
+
+        public static Sprite GetArmorStandSprite()
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetArmorStandSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetSquareSprite("ArmorStand", new Color(0.55f, 0.52f, 0.48f), 32);
+        }
+
+        public static Sprite GetBannerSprite(int variant = 0)
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetBannerSprite(variant); }
+                catch { /* Fall back to simple shape */ }
+            }
+            Color[] colors = { Color.red, Color.blue, Color.green, new Color(0.8f, 0.7f, 0.2f) };
+            return GetSquareSprite($"Banner_{variant}", colors[variant % 4], 16);
+        }
+
+        public static Sprite GetWindowSprite()
+        {
+            if (_usePhotorealisticSprites)
+            {
+                try { return PhotorealisticSpriteGenerator.GetWindowSprite(); }
+                catch { /* Fall back to simple shape */ }
+            }
+            return GetSquareSprite("Window", new Color(0.3f, 0.4f, 0.55f, 0.7f), 24);
         }
 
         // ==================== Texture Creation ====================

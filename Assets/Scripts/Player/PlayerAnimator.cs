@@ -1,11 +1,13 @@
 using UnityEngine;
 using HauntedCastle.Data;
+using HauntedCastle.Visuals;
 
 namespace HauntedCastle.Player
 {
     /// <summary>
     /// Handles player sprite animation.
     /// Supports 4-directional movement and attack animations.
+    /// Integrates procedural animation for smooth motion effects.
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public class PlayerAnimator : MonoBehaviour
@@ -27,16 +29,27 @@ namespace HauntedCastle.Player
         [SerializeField] private float walkFrameRate = 0.15f;
         [SerializeField] private float attackDuration = 0.2f;
 
+        [Header("Procedural Animation")]
+        // DISABLED - procedural animation was resetting player position and preventing movement
+        [SerializeField] private bool useProceduralAnimation = false;
+        [SerializeField] private float idleBobAmount = 0.03f;
+        [SerializeField] private float idleBobSpeed = 2.5f;
+        [SerializeField] private float walkBounceAmount = 0.06f;
+        [SerializeField] private float walkBounceSpeed = 10f;
+
         [Header("Character Data")]
         [SerializeField] private CharacterData characterData;
 
         private SpriteRenderer _spriteRenderer;
+        private ProceduralSpriteAnimator _proceduralAnimator;
         private bool _isMoving;
         private Vector2 _facingDirection = Vector2.down;
         private float _walkTimer;
         private int _currentWalkFrame;
         private bool _isAttacking;
         private float _attackTimer;
+        private float _animationTime;
+        private Vector3 _basePosition;
 
         // Direction tracking
         private enum Direction { Down, Up, Left, Right }
@@ -45,15 +58,27 @@ namespace HauntedCastle.Player
         private void Awake()
         {
             _spriteRenderer = GetComponent<SpriteRenderer>();
+            _proceduralAnimator = GetComponent<ProceduralSpriteAnimator>();
+
+            // Add procedural animator if not present and enabled
+            // NOTE: Disabled by default as ProceduralSpriteAnimator conflicts with physics movement
+            if (useProceduralAnimation && _proceduralAnimator == null)
+            {
+                // _proceduralAnimator = gameObject.AddComponent<ProceduralSpriteAnimator>();
+                Debug.LogWarning("[PlayerAnimator] ProceduralSpriteAnimator disabled - conflicts with physics movement");
+            }
         }
 
         private void Start()
         {
+            _basePosition = transform.localPosition;
             UpdateIdleSprite();
         }
 
         private void Update()
         {
+            _animationTime += Time.deltaTime;
+
             // Handle attack animation
             if (_isAttacking)
             {
@@ -75,6 +100,36 @@ namespace HauntedCastle.Player
                     _walkTimer = 0f;
                     AdvanceWalkFrame();
                 }
+            }
+
+            // Apply procedural animation if not using component
+            // NOTE: Disabled by default as it conflicts with physics-based movement
+            if (useProceduralAnimation && _proceduralAnimator == null)
+            {
+                // ApplyProceduralAnimation(); // DISABLED - conflicts with Rigidbody2D movement
+            }
+        }
+
+        private void ApplyProceduralAnimation()
+        {
+            if (_isAttacking) return;
+
+            if (_isMoving)
+            {
+                // Walk bounce
+                float bounce = Mathf.Abs(Mathf.Sin(_animationTime * walkBounceSpeed)) * walkBounceAmount;
+                transform.localPosition = _basePosition + Vector3.up * bounce;
+
+                // Lean into movement
+                float lean = Mathf.Sin(_animationTime * walkBounceSpeed) * 3f * _facingDirection.x;
+                transform.localRotation = Quaternion.Euler(0, 0, lean);
+            }
+            else
+            {
+                // Idle bobbing
+                float bob = Mathf.Sin(_animationTime * idleBobSpeed) * idleBobAmount;
+                transform.localPosition = _basePosition + Vector3.up * bob;
+                transform.localRotation = Quaternion.identity;
             }
         }
 
@@ -158,6 +213,12 @@ namespace HauntedCastle.Player
             {
                 _spriteRenderer.sprite = attackSprite;
             }
+
+            // Trigger procedural attack animation
+            if (_proceduralAnimator != null)
+            {
+                _proceduralAnimator.PlayAttack(_facingDirection);
+            }
         }
 
         /// <summary>
@@ -165,7 +226,35 @@ namespace HauntedCastle.Player
         /// </summary>
         public void TriggerDamage()
         {
-            // Flash red briefly - handled by PlayerHealth
+            // Flash red briefly with procedural animation
+            if (_proceduralAnimator != null)
+            {
+                _proceduralAnimator.PlayDamage();
+            }
+            else
+            {
+                // Simple flash effect
+                StartCoroutine(DamageFlash());
+            }
+        }
+
+        private System.Collections.IEnumerator DamageFlash()
+        {
+            Color originalColor = _spriteRenderer.color;
+            float flashDuration = 0.15f;
+            float elapsed = 0f;
+
+            while (elapsed < flashDuration)
+            {
+                // CRITICAL: Use unscaledDeltaTime to prevent infinite loop when timeScale = 0
+                elapsed += Time.unscaledDeltaTime;
+                float t = elapsed / flashDuration;
+                float flash = Mathf.Sin(t * Mathf.PI * 4f) * 0.5f + 0.5f;
+                _spriteRenderer.color = Color.Lerp(originalColor, Color.red, flash);
+                yield return null;
+            }
+
+            _spriteRenderer.color = originalColor;
         }
 
         private void UpdateSprite()

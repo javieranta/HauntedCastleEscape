@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Services;
+using HauntedCastle.Visuals;
 
 namespace HauntedCastle.Rooms
 {
@@ -43,9 +44,19 @@ namespace HauntedCastle.Rooms
             roomData = data;
             name = $"Room_{data.roomId}";
 
+            // Add RoomVisuals for procedural visual generation
+            var roomVisuals = GetComponent<RoomVisuals>();
+            if (roomVisuals == null)
+            {
+                roomVisuals = gameObject.AddComponent<RoomVisuals>();
+            }
+            roomVisuals.Initialize(data);
+
             SetupBackground();
             SetupAmbience();
             SetupWallColliders();
+
+            Debug.Log($"[Room] Initialized room: {data.displayName} on floor {data.floorNumber}");
         }
 
         /// <summary>
@@ -180,10 +191,83 @@ namespace HauntedCastle.Rooms
         private void SetupAmbience()
         {
             // Ambient sound would be handled by AudioManager
-            // For now, just log
             if (roomData.ambientSound != null)
             {
                 Debug.Log($"[Room] Would play ambient sound: {roomData.ambientSound.name}");
+            }
+
+            // Setup dynamic lighting with torches
+            SetupLighting();
+        }
+
+        private void SetupLighting()
+        {
+            // DISABLED - lighting was too bright and obscuring the player
+            // To re-enable, uncomment the code below
+            return;
+
+            /*
+            // Ensure lighting system exists
+            if (DynamicLightingSystem.Instance == null)
+            {
+                var lightingObj = new GameObject("DynamicLightingSystem");
+                lightingObj.AddComponent<DynamicLightingSystem>();
+            }
+
+            // Clear previous room's torches
+            DynamicLightingSystem.Instance.ClearTorches();
+
+            // Set ambient level based on floor (darker = basement, lighter = tower)
+            float ambientLevel = roomData.floorNumber switch
+            {
+                0 => 0.25f,  // Basement - darkest
+                1 => 0.4f,   // Castle - medium
+                2 => 0.55f,  // Tower - brighter
+                _ => 0.35f
+            };
+            DynamicLightingSystem.Instance.SetAmbientLevel(ambientLevel);
+
+            // Add torches at strategic positions
+            AddRoomTorches();
+            */
+        }
+
+        private void AddRoomTorches()
+        {
+            float halfWidth = ROOM_WIDTH / 2f - 1f;
+            float halfHeight = ROOM_HEIGHT / 2f - 1f;
+
+            // Torch color based on floor
+            Color torchColor = roomData.floorNumber switch
+            {
+                0 => new Color(0.8f, 0.5f, 0.2f, 0.85f),   // Orange for basement
+                1 => new Color(1f, 0.75f, 0.35f, 0.9f),   // Warm yellow for castle
+                2 => new Color(0.7f, 0.85f, 1f, 0.8f),    // Cool blue for tower
+                _ => new Color(1f, 0.7f, 0.3f, 0.85f)
+            };
+
+            // Corner torches
+            Vector3[] torchPositions = new Vector3[]
+            {
+                transform.position + new Vector3(-halfWidth, halfHeight, 0),    // Top-left
+                transform.position + new Vector3(halfWidth, halfHeight, 0),     // Top-right
+                transform.position + new Vector3(-halfWidth, -halfHeight, 0),   // Bottom-left
+                transform.position + new Vector3(halfWidth, -halfHeight, 0),    // Bottom-right
+            };
+
+            // Add torches at corners
+            foreach (var pos in torchPositions)
+            {
+                DynamicLightingSystem.Instance.AddTorch(pos, 3.5f, torchColor);
+            }
+
+            // Add center torch for larger/special rooms
+            if (roomData.isStartRoom || roomData.isExitRoom)
+            {
+                Color centerTorchColor = roomData.isExitRoom
+                    ? new Color(0.3f, 1f, 0.5f, 0.9f)     // Green for exit
+                    : new Color(1f, 0.9f, 0.5f, 0.95f);   // Bright yellow for start
+                DynamicLightingSystem.Instance.AddTorch(transform.position, 5f, centerTorchColor);
             }
         }
 

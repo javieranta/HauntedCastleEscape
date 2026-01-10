@@ -4,6 +4,8 @@ using HauntedCastle.Data;
 using HauntedCastle.Player;
 using HauntedCastle.Inventory;
 using HauntedCastle.Utils;
+using HauntedCastle.Audio;
+using HauntedCastle.Visuals;
 
 namespace HauntedCastle.Enemies
 {
@@ -42,6 +44,12 @@ namespace HauntedCastle.Enemies
         private float _animTimer;
         private int _animFrame;
 
+        // Procedural animation
+        private float _proceduralAnimTime;
+        private Vector3 _baseScale;
+        private Vector3 _basePosition;
+        private bool _isFlashing;
+
         // Events
         public event Action OnEnemyDeath;
         public event Action<Enemy> OnEnemyDestroyed;
@@ -58,15 +66,59 @@ namespace HauntedCastle.Enemies
             InitializeComponents();
         }
 
+        // Advanced AI components
+        private EnemyAbilities _abilities;
+        private AdvancedEnemyAI _advancedAI;
+
         private void Start()
         {
             _startPosition = transform.position;
+            _basePosition = transform.localPosition;
+            _baseScale = transform.localScale;
             FindPlayer();
 
             if (enemyData != null)
             {
                 _currentHealth = enemyData.health;
                 UpdateVisual();
+
+                // Add advanced AI components
+                InitializeAdvancedSystems();
+            }
+        }
+
+        private void InitializeAdvancedSystems()
+        {
+            // Add abilities for enemies that have special attacks
+            if (ShouldHaveAbilities())
+            {
+                _abilities = gameObject.AddComponent<EnemyAbilities>();
+                _abilities.Initialize(this, enemyData.enemyType);
+            }
+
+            // Add advanced AI for smarter movement
+            _advancedAI = gameObject.AddComponent<AdvancedEnemyAI>();
+            _advancedAI.Initialize(this, enemyData);
+        }
+
+        private bool ShouldHaveAbilities()
+        {
+            // Most enemies get abilities except very basic ones
+            switch (enemyData.enemyType)
+            {
+                case EnemyType.Ghost:
+                case EnemyType.Demon:
+                case EnemyType.Witch:
+                case EnemyType.Skeleton:
+                case EnemyType.Spider:
+                case EnemyType.Bat:
+                case EnemyType.Vampire:
+                case EnemyType.Mummy:
+                case EnemyType.Werewolf:
+                case EnemyType.Reaper:
+                    return true;
+                default:
+                    return false;
             }
         }
 
@@ -96,12 +148,20 @@ namespace HauntedCastle.Enemies
             rb.freezeRotation = true;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
-            // Configure collider
+            // Configure collider - NOT a trigger so player can bump into enemies
             col.isTrigger = false;
 
-            // Set tag and layer
+            // Set tag and layer using the LayerSetup constants
             gameObject.tag = "Enemy";
-            gameObject.layer = LayerMask.NameToLayer("Enemies");
+
+            // Use LayerSetup constant, fallback to default if layer doesn't exist
+            int enemyLayer = Core.LayerSetup.ENEMIES_LAYER;
+            if (enemyLayer >= 0 && enemyLayer < 32)
+            {
+                gameObject.layer = enemyLayer;
+            }
+
+            Debug.Log($"[Enemy] Initialized with tag=Enemy, layer={gameObject.layer}");
         }
 
         /// <summary>
@@ -320,23 +380,52 @@ namespace HauntedCastle.Enemies
         {
             Vector2 moveDirection = Vector2.zero;
             float speed = enemyData?.moveSpeed ?? 2f;
+            bool isChasing = false;
 
             switch (currentState)
             {
                 case EnemyState.Patrol:
-                    Vector2 patrolTarget = patrolToB ? patrolPointB : patrolPointA;
-                    moveDirection = (patrolTarget - (Vector2)transform.position).normalized;
+                    // Use advanced AI patrol patterns if available
+                    if (_advancedAI != null)
+                    {
+                        Vector2 advancedPatrolTarget = _advancedAI.GetPatrolPosition();
+                        moveDirection = (advancedPatrolTarget - (Vector2)transform.position).normalized;
+                    }
+                    else
+                    {
+                        Vector2 patrolTarget = patrolToB ? patrolPointB : patrolPointA;
+                        moveDirection = (patrolTarget - (Vector2)transform.position).normalized;
+                    }
                     break;
 
                 case EnemyState.Chase:
+                    isChasing = true;
                     if (_playerTransform != null)
                     {
-                        moveDirection = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
+                        // Use prediction from advanced AI if available
+                        if (_advancedAI != null)
+                        {
+                            Vector2 predictedPos = _advancedAI.GetPredictedPlayerPosition();
+                            moveDirection = (predictedPos - (Vector2)transform.position).normalized;
+                        }
+                        else
+                        {
+                            moveDirection = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
+                        }
                     }
                     break;
 
                 case EnemyState.Wander:
-                    moveDirection = (_wanderTarget - (Vector2)transform.position).normalized;
+                    // Use advanced AI patrol for wander too
+                    if (_advancedAI != null)
+                    {
+                        Vector2 wanderPos = _advancedAI.GetPatrolPosition();
+                        moveDirection = (wanderPos - (Vector2)transform.position).normalized;
+                    }
+                    else
+                    {
+                        moveDirection = (_wanderTarget - (Vector2)transform.position).normalized;
+                    }
                     speed *= 0.5f; // Wander slower
                     break;
 
@@ -345,7 +434,31 @@ namespace HauntedCastle.Enemies
                     break;
             }
 
-            rb.velocity = moveDirection * speed;
+            // Apply advanced movement modifications (flocking, evasion)
+            if (_advancedAI != null && moveDirection != Vector2.zero)
+            {
+                moveDirection = _advancedAI.GetAdvancedMoveDirection(moveDirection, isChasing);
+            }
+
+            // CRITICAL: Validate velocity before applying to prevent physics corruption
+            Vector2 newVelocity = moveDirection * speed;
+
+            // Check for NaN/Infinity which can corrupt the physics engine
+            if (float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) ||
+                float.IsInfinity(newVelocity.x) || float.IsInfinity(newVelocity.y))
+            {
+                Debug.LogWarning($"[Enemy] Invalid velocity detected: {newVelocity}, resetting to zero");
+                newVelocity = Vector2.zero;
+            }
+
+            // Clamp to reasonable max speed
+            float maxSpeed = 20f;
+            if (newVelocity.sqrMagnitude > maxSpeed * maxSpeed)
+            {
+                newVelocity = newVelocity.normalized * maxSpeed;
+            }
+
+            rb.velocity = newVelocity;
 
             // Flip sprite based on direction
             if (spriteRenderer != null && moveDirection.x != 0)
@@ -462,8 +575,22 @@ namespace HauntedCastle.Enemies
             // Knockback
             rb.velocity = knockbackDirection.normalized * 3f;
 
+            // Play hit sound
+            AudioManager.Instance?.PlaySFX(SoundEffect.EnemyHit);
+
             // Flash effect
             StartCoroutine(DamageFlash());
+
+            // Visual effects - damage number and screen shake
+            if (Effects.VisualEffectsManager.Instance != null)
+            {
+                bool isCritical = damage >= 5;
+                Effects.VisualEffectsManager.Instance.ShowDamageNumber(transform.position, damage, isCritical);
+                if (isCritical)
+                {
+                    Effects.VisualEffectsManager.Instance.ShakeScreen(0.08f, 0.1f);
+                }
+            }
 
             // Stun briefly
             Stun(0.3f);
@@ -483,7 +610,8 @@ namespace HauntedCastle.Enemies
             Color originalColor = enemyData?.tintColor ?? Color.white;
 
             spriteRenderer.color = Color.white;
-            yield return new WaitForSeconds(0.1f);
+            // CRITICAL: Use WaitForSecondsRealtime to work when timeScale = 0
+            yield return new WaitForSecondsRealtime(0.1f);
             spriteRenderer.color = originalColor;
         }
 
@@ -499,6 +627,23 @@ namespace HauntedCastle.Enemies
 
             Debug.Log($"[Enemy] {enemyData?.displayName ?? "Enemy"} died!");
 
+            // Play death sound
+            AudioManager.Instance?.PlaySFX(SoundEffect.EnemyDeath);
+
+            // Visual effects - death particles and screen shake
+            if (Effects.VisualEffectsManager.Instance != null)
+            {
+                Color deathColor = enemyData?.tintColor ?? Color.white;
+                Effects.VisualEffectsManager.Instance.SpawnParticleBurst(transform.position, deathColor, 15);
+                Effects.VisualEffectsManager.Instance.ShakeScreen(0.12f, 0.15f);
+            }
+
+            // Award score for defeating enemy
+            if (Core.ScoreManager.Instance != null && enemyData != null)
+            {
+                Core.ScoreManager.Instance.AwardEnemyKill(enemyData.enemyType);
+            }
+
             // Death animation
             StartCoroutine(DeathAnimation());
         }
@@ -511,7 +656,8 @@ namespace HauntedCastle.Enemies
 
             while (elapsed < duration)
             {
-                elapsed += Time.deltaTime;
+                // CRITICAL: Use unscaledDeltaTime to prevent infinite loop when timeScale = 0
+                elapsed += Time.unscaledDeltaTime;
                 float t = elapsed / duration;
 
                 transform.localScale = startScale * (1f - t);
@@ -535,16 +681,173 @@ namespace HauntedCastle.Enemies
 
         private void UpdateAnimation()
         {
-            if (enemyData?.animationSprites == null || enemyData.animationSprites.Length <= 1)
-                return;
+            _proceduralAnimTime += Time.deltaTime;
 
-            _animTimer += Time.deltaTime;
-            if (_animTimer >= 0.15f)
+            // Frame-based animation
+            if (enemyData?.animationSprites != null && enemyData.animationSprites.Length > 1)
             {
-                _animTimer = 0f;
-                _animFrame = (_animFrame + 1) % enemyData.animationSprites.Length;
-                spriteRenderer.sprite = enemyData.animationSprites[_animFrame];
+                _animTimer += Time.deltaTime;
+                if (_animTimer >= 0.15f)
+                {
+                    _animTimer = 0f;
+                    _animFrame = (_animFrame + 1) % enemyData.animationSprites.Length;
+                    spriteRenderer.sprite = enemyData.animationSprites[_animFrame];
+                }
             }
+
+            // Procedural animation effects
+            ApplyProceduralAnimation();
+        }
+
+        private void ApplyProceduralAnimation()
+        {
+            if (_isDead || _isFlashing) return;
+
+            bool isMoving = rb.velocity.sqrMagnitude > 0.1f;
+            float animSpeed = GetAnimationSpeed();
+
+            if (isMoving)
+            {
+                // Walking bounce
+                float bounce = Mathf.Abs(Mathf.Sin(_proceduralAnimTime * 8f * animSpeed)) * 0.04f;
+                transform.localPosition = _basePosition + Vector3.up * bounce;
+
+                // Slight lean in movement direction
+                float lean = Mathf.Sin(_proceduralAnimTime * 8f * animSpeed) * 2f * Mathf.Sign(rb.velocity.x);
+                transform.localRotation = Quaternion.Euler(0, 0, lean);
+
+                // Flip based on movement direction
+                if (Mathf.Abs(rb.velocity.x) > 0.1f)
+                {
+                    spriteRenderer.flipX = rb.velocity.x < 0;
+                }
+            }
+            else
+            {
+                // Idle bobbing (type-specific)
+                float bobAmount = GetIdleBobAmount();
+                float bob = Mathf.Sin(_proceduralAnimTime * 2.5f * animSpeed) * bobAmount;
+                transform.localPosition = _basePosition + Vector3.up * bob;
+                transform.localRotation = Quaternion.identity;
+            }
+
+            // Enemy-type specific effects
+            ApplyTypeSpecificAnimation();
+        }
+
+        private float GetAnimationSpeed()
+        {
+            return enemyData?.enemyType switch
+            {
+                EnemyType.Ghost => 0.6f,   // Slow, floaty
+                EnemyType.Bat => 2f,       // Fast, frantic
+                EnemyType.Spider => 1.5f,  // Quick scurrying
+                EnemyType.Skeleton => 0.8f,
+                EnemyType.Mummy => 0.5f,   // Slow, shambling
+                EnemyType.Demon => 1.2f,
+                EnemyType.Vampire => 1f,
+                EnemyType.Witch => 0.9f,
+                EnemyType.Werewolf => 1.3f,
+                EnemyType.Reaper => 0.7f,
+                _ => 1f
+            };
+        }
+
+        private float GetIdleBobAmount()
+        {
+            return enemyData?.enemyType switch
+            {
+                EnemyType.Ghost => 0.08f,  // Floaty hovering
+                EnemyType.Bat => 0.05f,    // Slight flutter
+                EnemyType.Spider => 0.02f, // Minimal
+                EnemyType.Skeleton => 0.025f,
+                EnemyType.Mummy => 0.015f, // Almost none
+                EnemyType.Demon => 0.04f,
+                EnemyType.Vampire => 0.03f,
+                EnemyType.Witch => 0.05f,  // Hovering
+                EnemyType.Werewolf => 0.02f,
+                EnemyType.Reaper => 0.06f, // Ethereal floating
+                _ => 0.03f
+            };
+        }
+
+        private void ApplyTypeSpecificAnimation()
+        {
+            switch (enemyData?.enemyType)
+            {
+                case EnemyType.Ghost:
+                    // Ethereal fade effect
+                    float fade = 0.6f + Mathf.Sin(_proceduralAnimTime * 1.5f) * 0.2f;
+                    spriteRenderer.color = new Color(
+                        enemyData.tintColor.r,
+                        enemyData.tintColor.g,
+                        enemyData.tintColor.b,
+                        fade
+                    );
+                    break;
+
+                case EnemyType.Bat:
+                    // Wing flutter effect (scale pulse)
+                    float flutter = 1f + Mathf.Abs(Mathf.Sin(_proceduralAnimTime * 15f)) * 0.1f;
+                    transform.localScale = new Vector3(_baseScale.x * flutter, _baseScale.y, _baseScale.z);
+                    break;
+
+                case EnemyType.Witch:
+                case EnemyType.Reaper:
+                    // Hover effect
+                    float hover = Mathf.Sin(_proceduralAnimTime * 2f) * 0.06f;
+                    transform.localPosition = _basePosition + Vector3.up * hover;
+                    break;
+
+                default:
+                    // Subtle breathing
+                    float breathe = 1f + Mathf.Sin(_proceduralAnimTime * 2f) * 0.02f;
+                    transform.localScale = new Vector3(_baseScale.x, _baseScale.y * breathe, _baseScale.z);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Triggers damage flash effect.
+        /// </summary>
+        public void PlayDamageAnimation()
+        {
+            if (!_isFlashing)
+            {
+                StartCoroutine(DamageFlashRoutine());
+            }
+        }
+
+        private System.Collections.IEnumerator DamageFlashRoutine()
+        {
+            _isFlashing = true;
+            Color originalColor = spriteRenderer.color;
+            float duration = 0.15f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                // CRITICAL: Use unscaledDeltaTime to prevent infinite loop when timeScale = 0
+                elapsed += Time.unscaledDeltaTime;
+                float t = elapsed / duration;
+
+                // Flash and shake
+                float flash = Mathf.Sin(t * Mathf.PI * 4f) * 0.5f + 0.5f;
+                spriteRenderer.color = Color.Lerp(originalColor, Color.red, flash);
+
+                float shake = (1f - t) * 0.1f;
+                transform.localPosition = _basePosition + new Vector3(
+                    UnityEngine.Random.Range(-shake, shake),
+                    UnityEngine.Random.Range(-shake, shake),
+                    0
+                );
+
+                yield return null;
+            }
+
+            spriteRenderer.color = originalColor;
+            transform.localPosition = _basePosition;
+            _isFlashing = false;
         }
 
         #endregion

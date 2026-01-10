@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using HauntedCastle.Core.GameState;
 using HauntedCastle.Services;
+using HauntedCastle.Audio;
 
 namespace HauntedCastle.Player
 {
@@ -11,14 +12,19 @@ namespace HauntedCastle.Player
     /// </summary>
     public class PlayerHealth : MonoBehaviour
     {
+        public static PlayerHealth Instance { get; private set; }
+
+        public int CurrentHealth => (int)_currentEnergy;
+        public int MaxHealth => (int)maxEnergy;
         [Header("Configuration")]
         [SerializeField] private float maxEnergy = 100f;
         [SerializeField] private int startingLives = 3;
 
         [Header("Energy Drain")]
-        [SerializeField] private float passiveDrainRate = 0.5f;      // Energy per second (idle) - 200 seconds to drain
-        [SerializeField] private float movementDrainRate = 0.5f;     // Additional drain while moving
-        [SerializeField] private bool drainWhileMoving = true;
+        // REDUCED - was causing player to die too quickly during testing
+        [SerializeField] private float passiveDrainRate = 0.1f;      // Energy per second (idle) - 1000 seconds to drain
+        [SerializeField] private float movementDrainRate = 0.1f;     // Additional drain while moving
+        [SerializeField] private bool drainWhileMoving = false;      // DISABLED for movement testing
 
         [Header("Damage")]
         [SerializeField] private float invulnerabilityDuration = 1.5f;
@@ -55,6 +61,11 @@ namespace HauntedCastle.Player
 
         private void Awake()
         {
+            if (Instance == null)
+            {
+                Instance = this;
+            }
+
             _playerController = GetComponent<PlayerController>();
             if (spriteRenderer == null)
             {
@@ -71,8 +82,11 @@ namespace HauntedCastle.Player
         {
             if (_isDead) return;
 
-            // Passive energy drain
-            DrainEnergy(passiveDrainRate * Time.deltaTime);
+            // Passive energy drain (reduced for testing)
+            if (passiveDrainRate > 0)
+            {
+                DrainEnergy(passiveDrainRate * Time.deltaTime);
+            }
 
             // Update invulnerability
             if (_isInvulnerable)
@@ -82,6 +96,12 @@ namespace HauntedCastle.Player
                 {
                     EndInvulnerability();
                 }
+            }
+
+            // DEBUG: Log energy status periodically
+            if (Time.frameCount % 300 == 0) // Every 5 seconds at 60fps
+            {
+                Debug.Log($"[PlayerHealth] Energy: {_currentEnergy:F1}/{maxEnergy}, Lives: {_currentLives}, Dead: {_isDead}");
             }
         }
 
@@ -143,6 +163,12 @@ namespace HauntedCastle.Player
             _currentEnergy = Mathf.Min(maxEnergy, _currentEnergy + amount);
             OnEnergyChanged?.Invoke(_currentEnergy, maxEnergy);
 
+            // Visual effects - heal number
+            if (Effects.VisualEffectsManager.Instance != null)
+            {
+                Effects.VisualEffectsManager.Instance.ShowHealNumber(transform.position, (int)amount);
+            }
+
             Debug.Log($"[PlayerHealth] Restored {amount} energy. Current: {_currentEnergy}/{maxEnergy}");
         }
 
@@ -158,6 +184,14 @@ namespace HauntedCastle.Player
 
             OnDamageTaken?.Invoke(damage);
 
+            // Visual effects - damage number and screen shake
+            if (Effects.VisualEffectsManager.Instance != null)
+            {
+                Effects.VisualEffectsManager.Instance.ShowDamageNumber(transform.position, (int)damage, damage >= 10);
+                Effects.VisualEffectsManager.Instance.ShakeScreen(0.15f, 0.2f);
+                Effects.VisualEffectsManager.Instance.SpawnParticleBurst(transform.position, damageFlashColor, 8);
+            }
+
             // Start invulnerability
             StartInvulnerability();
 
@@ -166,6 +200,12 @@ namespace HauntedCastle.Player
             {
                 _playerController.ApplyKnockback(knockbackDirection, knockbackForce);
             }
+
+            // Play hurt sound
+            AudioManager.Instance?.PlaySFX(SoundEffect.PlayerHurt);
+
+            // Notify score manager
+            Core.ScoreManager.Instance?.OnPlayerDamaged();
 
             // Visual feedback
             StartCoroutine(DamageFlashRoutine());
@@ -194,6 +234,17 @@ namespace HauntedCastle.Player
 
             OnDeath?.Invoke();
             OnLivesChanged?.Invoke(_currentLives);
+
+            // Play death sound
+            AudioManager.Instance?.PlaySFX(SoundEffect.PlayerDeath);
+
+            // Visual effects - death
+            if (Effects.VisualEffectsManager.Instance != null)
+            {
+                Effects.VisualEffectsManager.Instance.SpawnParticleBurst(transform.position, Color.red, 20);
+                Effects.VisualEffectsManager.Instance.ShakeScreen(0.25f, 0.4f);
+                Effects.VisualEffectsManager.Instance.ShowTextPopup(transform.position, "DEFEATED!", Color.red);
+            }
 
             Debug.Log($"[PlayerHealth] Player died! Lives remaining: {_currentLives}");
 
@@ -242,14 +293,15 @@ namespace HauntedCastle.Player
 
         private System.Collections.IEnumerator RespawnRoutine()
         {
-            // Disable player control
+            // Disable player control temporarily
             if (_playerController != null)
             {
                 _playerController.CanMove = false;
             }
 
             // Wait for death animation/effect
-            yield return new WaitForSeconds(1f);
+            // CRITICAL: Use WaitForSecondsRealtime to work when timeScale = 0
+            yield return new WaitForSecondsRealtime(1f);
 
             // Restore energy
             _currentEnergy = maxEnergy;
@@ -260,14 +312,28 @@ namespace HauntedCastle.Player
             // Respawn at room start or last checkpoint
             if (_playerController != null)
             {
-                _playerController.SetPosition(Vector2.zero); // Room center
-                _playerController.CanMove = true;
+                // Try to get a valid spawn position from RoomManager
+                Vector2 spawnPos = Vector2.zero;
+                if (Services.RoomManager.Instance != null)
+                {
+                    spawnPos = Services.RoomManager.Instance.GetPendingSpawnPosition();
+                    if (spawnPos == Vector2.zero)
+                    {
+                        // Use room center as fallback
+                        spawnPos = Vector2.zero;
+                    }
+                }
+
+                _playerController.SetPosition(spawnPos);
+                _playerController.CanMove = true; // CRITICAL: Always re-enable movement
+
+                Debug.Log($"[PlayerHealth] Player respawned at {spawnPos}, CanMove={_playerController.CanMove}");
             }
 
             // Brief invulnerability after respawn
             StartInvulnerability();
 
-            Debug.Log("[PlayerHealth] Player respawned");
+            Debug.Log("[PlayerHealth] Respawn complete");
         }
 
         private void HandleGameOver()
@@ -286,7 +352,8 @@ namespace HauntedCastle.Player
 
         private System.Collections.IEnumerator GameOverRoutine()
         {
-            yield return new WaitForSeconds(2f);
+            // CRITICAL: Use WaitForSecondsRealtime to work when timeScale = 0
+            yield return new WaitForSecondsRealtime(2f);
 
             if (GameManager.Instance != null)
             {
@@ -322,10 +389,11 @@ namespace HauntedCastle.Player
             for (int i = 0; i < flashCount && _isInvulnerable; i++)
             {
                 spriteRenderer.color = damageFlashColor;
-                yield return new WaitForSeconds(flashDuration);
+                // CRITICAL: Use WaitForSecondsRealtime to work when timeScale = 0
+                yield return new WaitForSecondsRealtime(flashDuration);
 
                 spriteRenderer.color = Color.white;
-                yield return new WaitForSeconds(flashDuration);
+                yield return new WaitForSecondsRealtime(flashDuration);
             }
 
             spriteRenderer.color = Color.white;

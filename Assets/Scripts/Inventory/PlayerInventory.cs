@@ -209,6 +209,18 @@ namespace HauntedCastle.Inventory
         }
 
         /// <summary>
+        /// Gets all keys owned by the player.
+        /// </summary>
+        public List<KeyColor> GetOwnedKeys()
+        {
+            return _items
+                .Where(item => item.itemType == ItemType.Key)
+                .Select(item => item.keyColor)
+                .Distinct()
+                .ToList();
+        }
+
+        /// <summary>
         /// Checks if the player has all three key pieces.
         /// </summary>
         public bool HasAllKeyPieces()

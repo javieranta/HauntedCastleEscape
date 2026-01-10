@@ -219,8 +219,18 @@ namespace HauntedCastle.Audio
 
         #region SFX Methods
 
+        // TEMPORARILY DISABLED - Testing if sound causes freeze
+        private bool _soundDisabled = true;
+
         public void PlaySFX(SoundEffect effect)
         {
+            // DISABLED FOR TESTING - uncomment to re-enable
+            if (_soundDisabled)
+            {
+                Debug.Log($"[AudioManager] Sound DISABLED - would play: {effect}");
+                return;
+            }
+
             AudioClip clip = GetSFXClip(effect);
             if (clip != null)
             {
@@ -230,6 +240,9 @@ namespace HauntedCastle.Audio
 
         public void PlaySFX(AudioClip clip)
         {
+            // DISABLED FOR TESTING
+            if (_soundDisabled) return;
+
             if (clip != null)
             {
                 PlaySFXClip(clip);
@@ -238,7 +251,8 @@ namespace HauntedCastle.Audio
 
         private AudioClip GetSFXClip(SoundEffect effect)
         {
-            return effect switch
+            // Try assigned clip first, fallback to procedural generation
+            AudioClip clip = effect switch
             {
                 SoundEffect.Pickup => pickupSound,
                 SoundEffect.DoorOpen => doorOpenSound,
@@ -257,6 +271,32 @@ namespace HauntedCastle.Audio
                 SoundEffect.Stairs => stairsSound,
                 _ => null
             };
+
+            // Use procedural fallback if no clip assigned
+            if (clip == null)
+            {
+                clip = effect switch
+                {
+                    SoundEffect.Pickup => ProceduralSoundGenerator.GetPickupSound(),
+                    SoundEffect.DoorOpen => ProceduralSoundGenerator.GetDoorOpenSound(),
+                    SoundEffect.DoorLocked => ProceduralSoundGenerator.GetDoorLockedSound(),
+                    SoundEffect.KeyUnlock => ProceduralSoundGenerator.GetKeyPickupSound(),
+                    SoundEffect.PlayerHurt => ProceduralSoundGenerator.GetPlayerHurtSound(),
+                    SoundEffect.PlayerDeath => ProceduralSoundGenerator.GetPlayerDeathSound(),
+                    SoundEffect.EnemyHit => ProceduralSoundGenerator.GetEnemyHitSound(),
+                    SoundEffect.EnemyDeath => ProceduralSoundGenerator.GetEnemyDeathSound(),
+                    SoundEffect.Attack => ProceduralSoundGenerator.GetAttackSound(),
+                    SoundEffect.MenuSelect => ProceduralSoundGenerator.GetMenuSelectSound(),
+                    SoundEffect.MenuConfirm => ProceduralSoundGenerator.GetMenuConfirmSound(),
+                    SoundEffect.KeyPiece => ProceduralSoundGenerator.GetKeyPickupSound(),
+                    SoundEffect.GreatKey => ProceduralSoundGenerator.GetGreatKeySound(),
+                    SoundEffect.SecretPassage => ProceduralSoundGenerator.GetSecretPassageSound(),
+                    SoundEffect.Stairs => ProceduralSoundGenerator.GetStairsSound(),
+                    _ => null
+                };
+            }
+
+            return clip;
         }
 
         private void PlaySFXClip(AudioClip clip)

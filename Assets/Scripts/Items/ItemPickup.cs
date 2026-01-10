@@ -4,6 +4,7 @@ using HauntedCastle.Player;
 using HauntedCastle.Inventory;
 using HauntedCastle.Utils;
 using HauntedCastle.Visuals;
+using HauntedCastle.Audio;
 
 namespace HauntedCastle.Items
 {
@@ -166,14 +167,66 @@ namespace HauntedCastle.Items
         {
             _isPickedUp = true;
 
-            // Play pickup sound
+            // Play pickup sound - use AudioManager with procedural fallback
+            SoundEffect pickupSound = itemData.itemType switch
+            {
+                ItemType.Key => SoundEffect.KeyUnlock,
+                ItemType.KeyPiece => SoundEffect.KeyPiece,
+                ItemType.Food => SoundEffect.Pickup,
+                ItemType.Treasure => SoundEffect.Pickup,
+                ItemType.Special => SoundEffect.Pickup,
+                ItemType.GreatKey => SoundEffect.GreatKey,
+                _ => SoundEffect.Pickup
+            };
+            AudioManager.Instance?.PlaySFX(pickupSound);
+
+            // Legacy audio source support
             if (audioSource != null && itemData.pickupSound != null)
             {
                 audioSource.PlayOneShot(itemData.pickupSound);
             }
 
+            // Visual effects - text popup and particles
+            if (Effects.VisualEffectsManager.Instance != null)
+            {
+                string pickupText = itemData.itemType switch
+                {
+                    ItemType.Key => $"+{itemData.displayName}",
+                    ItemType.KeyPiece => "KEY PIECE!",
+                    ItemType.Food => $"+{itemData.energyRestore} Energy",
+                    ItemType.Treasure => $"+{itemData.scoreValue} Points",
+                    _ => itemData.displayName
+                };
+
+                Color pickupColor = itemData.itemType switch
+                {
+                    ItemType.Key => GetKeyTypeColor(itemData.keyColor),
+                    ItemType.KeyPiece => Color.yellow,
+                    ItemType.Food => Color.green,
+                    ItemType.Treasure => new Color(1f, 0.8f, 0.2f),
+                    _ => Color.white
+                };
+
+                Effects.VisualEffectsManager.Instance.ShowTextPopup(transform.position, pickupText, pickupColor);
+                Effects.VisualEffectsManager.Instance.SpawnParticleBurst(transform.position, pickupColor, 8);
+            }
+
             // Visual feedback
             StartCoroutine(PickupAnimation());
+        }
+
+        private Color GetKeyTypeColor(KeyColor keyColor)
+        {
+            return keyColor switch
+            {
+                KeyColor.Red => Color.red,
+                KeyColor.Blue => Color.blue,
+                KeyColor.Green => Color.green,
+                KeyColor.Yellow => Color.yellow,
+                KeyColor.Cyan => Color.cyan,
+                KeyColor.Magenta => Color.magenta,
+                _ => Color.white
+            };
         }
 
         private System.Collections.IEnumerator PickupAnimation()
@@ -184,7 +237,8 @@ namespace HauntedCastle.Items
 
             while (elapsed < duration)
             {
-                elapsed += Time.deltaTime;
+                // CRITICAL: Use unscaledDeltaTime to prevent infinite loop when timeScale = 0
+                elapsed += Time.unscaledDeltaTime;
                 float t = elapsed / duration;
 
                 // Scale up and fade out

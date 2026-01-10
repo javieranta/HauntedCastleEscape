@@ -77,6 +77,13 @@ namespace HauntedCastle.Services
         {
             // Reset time scale in case it was paused
             Time.timeScale = 1f;
+
+            // Ensure all managers exist
+            Effects.VisualEffectsManager.EnsureExists();
+            Effects.AtmosphereManager.EnsureExists();
+            Effects.CombatFeedbackManager.EnsureExists();
+            Core.ScoreManager.EnsureExists();
+
             ChangeState(GameState.Playing);
             LoadScene(SCENE_GAME);
         }

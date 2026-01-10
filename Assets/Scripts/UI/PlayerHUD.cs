@@ -1,6 +1,7 @@
 using UnityEngine;
 using HauntedCastle.Player;
 using HauntedCastle.Services;
+using HauntedCastle.Data;
 
 namespace HauntedCastle.UI
 {
@@ -21,7 +22,19 @@ namespace HauntedCastle.UI
         [SerializeField] private Color energyBarBackgroundColor = new Color(0.2f, 0.2f, 0.2f);
         [SerializeField] private Color livesColor = Color.red;
 
+        [Header("Floor Indicator")]
+        [SerializeField] private bool showFloorIndicator = true;
+        [SerializeField] private float floorIndicatorWidth = 250f;
+        [SerializeField] private float floorIndicatorHeight = 60f;
+
         private PlayerHealth _playerHealth;
+        private string _currentFloorName = "";
+        private string _currentRoomName = "";
+        private int _currentFloorNumber = 1;
+        private float _floorIndicatorAlpha = 1f;
+        private float _floorIndicatorFadeTimer = 0f;
+        private const float FLOOR_INDICATOR_FADE_DELAY = 3f;
+        private const float FLOOR_INDICATOR_FADE_DURATION = 1f;
         private GUIStyle _boxStyle;
         private GUIStyle _labelStyle;
         private Texture2D _whiteTexture;
@@ -35,6 +48,35 @@ namespace HauntedCastle.UI
             _whiteTexture = new Texture2D(1, 1);
             _whiteTexture.SetPixel(0, 0, Color.white);
             _whiteTexture.Apply();
+
+            // Subscribe to room change events
+            if (RoomManager.Instance != null)
+            {
+                RoomManager.Instance.OnRoomLoadCompleted += OnRoomChanged;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // Unsubscribe from events
+            if (RoomManager.Instance != null)
+            {
+                RoomManager.Instance.OnRoomLoadCompleted -= OnRoomChanged;
+            }
+        }
+
+        private void OnRoomChanged(RoomData newRoom)
+        {
+            if (newRoom != null)
+            {
+                _currentRoomName = newRoom.displayName;
+                _currentFloorNumber = newRoom.floorNumber;
+                _currentFloorName = RoomDatabase.GetFloorName(newRoom.floorNumber);
+
+                // Reset fade timer to show indicator
+                _floorIndicatorFadeTimer = 0f;
+                _floorIndicatorAlpha = 1f;
+            }
         }
 
         private void FindPlayerHealth()
@@ -60,6 +102,30 @@ namespace HauntedCastle.UI
             if (_playerHealth == null)
             {
                 FindPlayerHealth();
+            }
+
+            // Update floor indicator fade
+            if (_floorIndicatorAlpha > 0f)
+            {
+                _floorIndicatorFadeTimer += Time.deltaTime;
+                if (_floorIndicatorFadeTimer > FLOOR_INDICATOR_FADE_DELAY)
+                {
+                    float fadeProgress = (_floorIndicatorFadeTimer - FLOOR_INDICATOR_FADE_DELAY) / FLOOR_INDICATOR_FADE_DURATION;
+                    _floorIndicatorAlpha = Mathf.Clamp01(1f - fadeProgress);
+                }
+            }
+
+            // Try to subscribe to RoomManager if not yet
+            if (RoomManager.Instance != null && string.IsNullOrEmpty(_currentRoomName))
+            {
+                RoomManager.Instance.OnRoomLoadCompleted -= OnRoomChanged;
+                RoomManager.Instance.OnRoomLoadCompleted += OnRoomChanged;
+
+                // Get current room info if available
+                if (RoomManager.Instance.CurrentRoomData != null)
+                {
+                    OnRoomChanged(RoomManager.Instance.CurrentRoomData);
+                }
             }
         }
 
@@ -127,6 +193,12 @@ namespace HauntedCastle.UI
 
             // Draw character info in corner
             DrawCharacterInfo();
+
+            // Draw floor indicator
+            if (showFloorIndicator)
+            {
+                DrawFloorIndicator();
+            }
         }
 
         private void DrawProgressBar(Rect rect, float percent, Color fillColor, Color backgroundColor)
@@ -183,6 +255,76 @@ namespace HauntedCastle.UI
         public void ToggleHUD()
         {
             showHUD = !showHUD;
+        }
+
+        private void DrawFloorIndicator()
+        {
+            if (string.IsNullOrEmpty(_currentRoomName)) return;
+            if (_floorIndicatorAlpha <= 0.01f) return;
+
+            // Position at bottom center of screen
+            Rect indicatorRect = new Rect(
+                (Screen.width - floorIndicatorWidth) / 2f,
+                Screen.height - floorIndicatorHeight - margin,
+                floorIndicatorWidth,
+                floorIndicatorHeight
+            );
+
+            // Get floor-themed color
+            Color floorColor = GetFloorColor(_currentFloorNumber);
+
+            // Background with fade
+            GUI.color = new Color(0, 0, 0, 0.8f * _floorIndicatorAlpha);
+            GUI.DrawTexture(indicatorRect, _whiteTexture);
+
+            // Border accent
+            Rect borderRect = new Rect(indicatorRect.x, indicatorRect.y, indicatorRect.width, 3);
+            GUI.color = new Color(floorColor.r, floorColor.g, floorColor.b, _floorIndicatorAlpha);
+            GUI.DrawTexture(borderRect, _whiteTexture);
+
+            GUI.color = Color.white;
+
+            // Create styles
+            GUIStyle floorStyle = new GUIStyle(_labelStyle);
+            floorStyle.fontSize = 12;
+            floorStyle.alignment = TextAnchor.MiddleCenter;
+            floorStyle.normal.textColor = new Color(floorColor.r, floorColor.g, floorColor.b, _floorIndicatorAlpha);
+
+            GUIStyle roomStyle = new GUIStyle(_labelStyle);
+            roomStyle.fontSize = 16;
+            roomStyle.alignment = TextAnchor.MiddleCenter;
+            roomStyle.fontStyle = FontStyle.Bold;
+            roomStyle.normal.textColor = new Color(1f, 1f, 1f, _floorIndicatorAlpha);
+
+            GUILayout.BeginArea(new Rect(indicatorRect.x + 5, indicatorRect.y + 5, indicatorRect.width - 10, indicatorRect.height - 10));
+
+            // Floor name
+            GUILayout.Label(_currentFloorName, floorStyle);
+
+            // Room name
+            GUILayout.Label(_currentRoomName, roomStyle);
+
+            GUILayout.EndArea();
+        }
+
+        private Color GetFloorColor(int floor)
+        {
+            return floor switch
+            {
+                0 => new Color(0.6f, 0.4f, 0.7f),    // Basement - purple
+                1 => new Color(0.9f, 0.7f, 0.3f),    // Castle - gold
+                2 => new Color(0.4f, 0.7f, 0.9f),    // Tower - sky blue
+                _ => Color.white
+            };
+        }
+
+        /// <summary>
+        /// Forces the floor indicator to show (useful when manually checking room).
+        /// </summary>
+        public void ShowFloorIndicator()
+        {
+            _floorIndicatorAlpha = 1f;
+            _floorIndicatorFadeTimer = 0f;
         }
     }
 }

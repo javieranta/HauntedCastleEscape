@@ -147,6 +147,9 @@ namespace HauntedCastle.Services
                 gviObj.AddComponent<GameVisualInitializer>();
             }
 
+            // Ensure TimeScaleWatchdog exists (prevents Time.timeScale from getting stuck)
+            TimeScaleWatchdog.EnsureExists();
+
             // Setup room container
             if (roomContainer == null)
             {

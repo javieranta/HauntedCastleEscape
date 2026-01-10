@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Utils;
+using HauntedCastle.Core;
 
 namespace HauntedCastle.Player
 {
@@ -60,7 +61,19 @@ namespace HauntedCastle.Player
         /// </summary>
         public bool TryAttack(Vector2 direction)
         {
-            if (!CanAttack) return false;
+            Debug.Log($"[PlayerCombat] TryAttack called. CanAttack={CanAttack}, _canAttack={_canAttack}, cooldown={_attackCooldownTimer}");
+
+            if (!CanAttack)
+            {
+                Debug.Log("[PlayerCombat] Cannot attack - still on cooldown or disabled");
+                return false;
+            }
+
+            // Normalize direction, default to right if zero
+            if (direction.sqrMagnitude < 0.01f)
+            {
+                direction = Vector2.right;
+            }
 
             // If no character data, use fallback attack
             if (characterData == null)
@@ -95,7 +108,7 @@ namespace HauntedCastle.Player
             PlayAttackSound();
 
             OnAttack?.Invoke();
-            Debug.Log($"[PlayerCombat] Attack performed: {characterData.attackType}");
+            Debug.Log($"[PlayerCombat] Attack performed: {characterData.attackType} in direction {direction}");
             return true;
         }
 
@@ -154,8 +167,25 @@ namespace HauntedCastle.Player
             // Position hitbox in attack direction
             Vector2 hitboxPos = (Vector2)transform.position + direction * 0.8f;
 
-            // Find all enemies in range
-            Collider2D[] hits = Physics2D.OverlapCircleAll(hitboxPos, meleeRadius, enemyLayer);
+            // Create melee swing trail
+            if (Effects.CombatFeedbackManager.Instance != null)
+            {
+                Effects.CombatFeedbackManager.Instance.CreateMeleeSwingTrail(transform.position, direction, meleeRadius + 0.3f);
+            }
+
+            // Find all enemies in range - use LayerSetup mask if enemyLayer not set
+            LayerMask effectiveLayer = enemyLayer.value != 0 ? enemyLayer : (LayerMask)(1 << LayerSetup.ENEMIES_LAYER);
+
+            // Also check all colliders if layer mask fails
+            Collider2D[] hits = Physics2D.OverlapCircleAll(hitboxPos, meleeRadius, effectiveLayer);
+
+            // If no hits with layer mask, try finding any damageable objects
+            if (hits.Length == 0)
+            {
+                hits = Physics2D.OverlapCircleAll(hitboxPos, meleeRadius);
+            }
+
+            Debug.Log($"[PlayerCombat] Melee attack at {hitboxPos}, radius={meleeRadius}, found {hits.Length} colliders");
 
             int enemiesHit = 0;
             foreach (var hit in hits)
@@ -165,6 +195,18 @@ namespace HauntedCastle.Player
                 {
                     damageable.TakeDamage(characterData.attackDamage, direction);
                     enemiesHit++;
+
+                    // Combat feedback for each hit
+                    if (Effects.CombatFeedbackManager.Instance != null)
+                    {
+                        bool isKill = !damageable.IsAlive;
+                        Effects.CombatFeedbackManager.Instance.FullImpactEffect(
+                            hit.transform.position,
+                            direction,
+                            characterData.attackDamage,
+                            isKill
+                        );
+                    }
                 }
             }
 
@@ -172,9 +214,20 @@ namespace HauntedCastle.Player
             {
                 OnEnemyHit?.Invoke(characterData.attackDamage * enemiesHit);
                 Debug.Log($"[PlayerCombat] Melee hit {enemiesHit} enemies");
+
+                // Show combo counter
+                if (Effects.CombatFeedbackManager.Instance != null && Core.ScoreManager.Instance != null)
+                {
+                    int combo = Core.ScoreManager.Instance.ComboCount;
+                    if (combo > 1)
+                    {
+                        Effects.CombatFeedbackManager.Instance.ShowComboCounter(hitboxPos, combo);
+                        Effects.CombatFeedbackManager.Instance.CreateComboStreak(hitboxPos, combo);
+                    }
+                }
             }
 
-            // Visual feedback - could spawn a slash effect here
+            // Visual feedback - spawn a slash effect
             SpawnMeleeEffect(hitboxPos, direction);
         }
 
@@ -209,24 +262,47 @@ namespace HauntedCastle.Player
         {
             var projObj = new GameObject("Projectile");
             projObj.transform.position = position;
-            projObj.layer = LayerMask.NameToLayer("Projectiles");
-            projObj.tag = "Projectile";
+
+            // Set layer safely
+            int projLayer = LayerMask.NameToLayer("Projectiles");
+            if (projLayer >= 0)
+            {
+                projObj.layer = projLayer;
+            }
+            else
+            {
+                projObj.layer = 0; // Default layer
+            }
+
+            // Set tag safely
+            try { projObj.tag = "Projectile"; } catch { /* Tag doesn't exist */ }
+
+            // Add rigidbody FIRST (required by Projectile component)
+            var rb = projObj.AddComponent<Rigidbody2D>();
+            rb.gravityScale = 0f;
+            rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            // Add collider (required by Projectile component)
+            var col = projObj.AddComponent<CircleCollider2D>();
+            col.radius = 0.25f;
+            col.isTrigger = true;
 
             // Add sprite with placeholder
             var sr = projObj.AddComponent<SpriteRenderer>();
             sr.sprite = GetProjectileSprite();
-            sr.sortingLayerName = "Projectiles";
-            sr.sortingOrder = 0;
 
-            // Add collider
-            var col = projObj.AddComponent<CircleCollider2D>();
-            col.radius = 0.2f;
-            col.isTrigger = true;
+            // Set sorting layer safely
+            if (SortingLayer.NameToID("Projectiles") != 0)
+            {
+                sr.sortingLayerName = "Projectiles";
+            }
+            else
+            {
+                sr.sortingLayerName = "Default";
+            }
+            sr.sortingOrder = 100; // High order to be visible
 
-            // Add rigidbody
-            var rb = projObj.AddComponent<Rigidbody2D>();
-            rb.gravityScale = 0f;
-            rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            Debug.Log($"[PlayerCombat] Created projectile at {position}");
 
             return projObj;
         }

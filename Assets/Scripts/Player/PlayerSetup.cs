@@ -109,10 +109,15 @@ namespace HauntedCastle.Player
             if (inputHandler == null) inputHandler = GetComponent<PlayerInputHandler>();
             if (inputHandler == null) inputHandler = gameObject.AddComponent<PlayerInputHandler>();
 
-            // Configure Rigidbody2D
+            // Configure Rigidbody2D - CRITICAL: Must be Dynamic for velocity to work
+            rb.bodyType = RigidbodyType2D.Dynamic;
             rb.gravityScale = 0f;
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+            rb.sleepMode = RigidbodySleepMode2D.NeverSleep; // Ensure physics always updates
+
+            Debug.Log($"[PlayerSetup] Rigidbody2D configured: bodyType={rb.bodyType}, gravityScale={rb.gravityScale}");
 
             // Configure sprite renderer (use Default if Player sorting layer doesn't exist)
             if (SortingLayer.NameToID("Player") != 0)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using HauntedCastle.Core;
 
 namespace HauntedCastle.Player
 {
@@ -6,8 +7,6 @@ namespace HauntedCastle.Player
     /// Projectile component for ranged attacks.
     /// Moves in a direction and damages enemies on contact.
     /// </summary>
-    [RequireComponent(typeof(Rigidbody2D))]
-    [RequireComponent(typeof(Collider2D))]
     public class Projectile : MonoBehaviour
     {
         [Header("Settings")]
@@ -34,6 +33,11 @@ namespace HauntedCastle.Player
         private void Awake()
         {
             _rb = GetComponent<Rigidbody2D>();
+            if (_rb == null)
+            {
+                _rb = gameObject.AddComponent<Rigidbody2D>();
+            }
+
             if (spriteRenderer == null)
             {
                 spriteRenderer = GetComponent<SpriteRenderer>();
@@ -42,6 +46,8 @@ namespace HauntedCastle.Player
             // Configure rigidbody
             _rb.gravityScale = 0f;
             _rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            Debug.Log($"[Projectile] Awake - rb={((_rb != null) ? "exists" : "NULL")}");
         }
 
         /// <summary>
@@ -66,8 +72,21 @@ namespace HauntedCastle.Player
             float angle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
 
-            // Set layer based on owner
-            gameObject.layer = LayerMask.NameToLayer("Projectiles");
+            // Set layer based on owner (safely)
+            int projLayer = LayerMask.NameToLayer("Projectiles");
+            if (projLayer >= 0)
+            {
+                gameObject.layer = projLayer;
+            }
+
+            // Add projectile trail effect
+            if (Effects.CombatFeedbackManager.Instance != null && spriteRenderer != null)
+            {
+                Color trailColor = spriteRenderer.color;
+                Effects.CombatFeedbackManager.Instance.CreateProjectileTrail(gameObject, trailColor);
+            }
+
+            Debug.Log($"[Projectile] Initialized - direction={_direction}, speed={speed}, damage={damage}");
         }
 
         private void Update()
@@ -84,17 +103,34 @@ namespace HauntedCastle.Player
 
         private void OnTriggerEnter2D(Collider2D other)
         {
+            HandleCollision(other);
+        }
+
+        private void OnCollisionEnter2D(Collision2D collision)
+        {
+            // Also handle non-trigger collisions (enemies have non-trigger colliders)
+            HandleCollision(collision.collider);
+        }
+
+        private void HandleCollision(Collider2D other)
+        {
             // Ignore same-team projectiles
             if (other.CompareTag("Projectile")) return;
 
             // Player projectiles hit enemies
             if (isPlayerProjectile)
             {
-                if (other.CompareTag("Enemy"))
+                // Check by tag OR by layer OR by component
+                bool isEnemy = other.CompareTag("Enemy") ||
+                               other.gameObject.layer == Core.LayerSetup.ENEMIES_LAYER ||
+                               other.GetComponent<IDamageable>() != null;
+
+                if (isEnemy)
                 {
                     HitEnemy(other);
                 }
-                else if (other.gameObject.layer == LayerMask.NameToLayer("Walls"))
+                else if (other.gameObject.layer == Core.LayerSetup.WALLS_LAYER ||
+                         other.CompareTag("Wall"))
                 {
                     // Hit wall
                     DestroyProjectile();
@@ -103,11 +139,12 @@ namespace HauntedCastle.Player
             // Enemy projectiles hit player
             else
             {
-                if (other.CompareTag("Player"))
+                if (other.CompareTag("Player") || other.gameObject.layer == Core.LayerSetup.PLAYER_LAYER)
                 {
                     HitPlayer(other);
                 }
-                else if (other.gameObject.layer == LayerMask.NameToLayer("Walls"))
+                else if (other.gameObject.layer == Core.LayerSetup.WALLS_LAYER ||
+                         other.CompareTag("Wall"))
                 {
                     DestroyProjectile();
                 }
@@ -179,7 +216,8 @@ namespace HauntedCastle.Player
 
             while (elapsed < duration)
             {
-                elapsed += Time.deltaTime;
+                // CRITICAL: Use unscaledDeltaTime to prevent infinite loop when timeScale = 0
+                elapsed += Time.unscaledDeltaTime;
                 float t = elapsed / duration;
 
                 effect.transform.localScale = Vector3.one * (1f + t);

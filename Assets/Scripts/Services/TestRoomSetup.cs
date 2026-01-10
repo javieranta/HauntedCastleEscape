@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Enemies;
+using HauntedCastle.Items;
 
 namespace HauntedCastle.Services
 {
@@ -19,6 +20,13 @@ namespace HauntedCastle.Services
         {
             if (createTestRooms)
             {
+                // Check if RoomDatabase already populated the rooms
+                if (RoomDatabase.Instance != null && RoomDatabase.Instance.TotalRoomCount > 0)
+                {
+                    Debug.Log("[TestRoomSetup] RoomDatabase already has rooms, skipping test room creation");
+                    return;
+                }
+
                 // Ensure RoomManager exists before creating rooms
                 EnsureRoomManager();
                 CreateTestRooms();

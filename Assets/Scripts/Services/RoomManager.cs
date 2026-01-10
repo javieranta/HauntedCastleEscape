@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Rooms;
+using HauntedCastle.Audio;
 
 namespace HauntedCastle.Services
 {
@@ -50,6 +51,7 @@ namespace HauntedCastle.Services
         private bool _isTransitioning = false;
         private Vector2 _pendingSpawnPosition;
         private string _pendingSpawnId;
+        private float _transitionStartTime; // Safety timeout tracking
 
         private void Awake()
         {
@@ -76,6 +78,16 @@ namespace HauntedCastle.Services
                 {
                     roomContainer = new GameObject("RoomContainer").transform;
                 }
+            }
+        }
+
+        private void Update()
+        {
+            // SAFETY: Ensure transition doesn't get stuck
+            if (_isTransitioning && Time.unscaledTime - _transitionStartTime > 5f)
+            {
+                Debug.LogWarning("[RoomManager] Transition was stuck for 5+ seconds, forcing reset");
+                _isTransitioning = false;
             }
         }
 
@@ -214,6 +226,7 @@ namespace HauntedCastle.Services
         private IEnumerator LoadRoomCoroutine(RoomData roomData, string spawnPointId)
         {
             _isTransitioning = true;
+            _transitionStartTime = Time.unscaledTime;
             _pendingSpawnId = spawnPointId;
 
             OnRoomLoadStarted?.Invoke(roomData);
@@ -252,6 +265,9 @@ namespace HauntedCastle.Services
             }
 
             _isTransitioning = false;
+
+            // Play room enter sound
+            AudioManager.Instance?.PlaySFX(SoundEffect.DoorOpen);
 
             Debug.Log($"[RoomManager] Loaded room: {roomData.roomId} (Floor {roomData.floorNumber})");
         }
@@ -330,14 +346,19 @@ namespace HauntedCastle.Services
                 doorObj = new GameObject($"Door_{direction}");
                 doorObj.transform.SetParent(room.transform);
 
-                // Add collider for trigger
+                // Add collider for trigger - larger size for better detection
                 var collider = doorObj.AddComponent<BoxCollider2D>();
                 collider.isTrigger = true;
-                collider.size = new Vector2(1.5f, 0.5f);
+
+                // Adjust collider size based on door direction
+                bool isVertical = (direction == DoorDirection.East || direction == DoorDirection.West);
+                collider.size = isVertical ? new Vector2(1.5f, 3f) : new Vector2(3f, 1.5f);
 
                 // Add sprite renderer placeholder
                 var sr = doorObj.AddComponent<SpriteRenderer>();
                 sr.color = GetDoorColor(doorData.doorType, doorData.requiredKeyColor);
+                sr.sortingLayerName = "Items";
+                sr.sortingOrder = 2;
             }
 
             doorObj.transform.localPosition = defaultPosition;
@@ -350,6 +371,8 @@ namespace HauntedCastle.Services
 
             door.Initialize(doorData, direction);
             room.RegisterDoor(direction, door);
+
+            Debug.Log($"[RoomManager] Built door {direction} -> {doorData.destinationRoomId}");
         }
 
         private void BuildFloorTransitions(Room room, RoomData roomData)
@@ -386,10 +409,19 @@ namespace HauntedCastle.Services
 
                 var collider = transObj.AddComponent<BoxCollider2D>();
                 collider.isTrigger = true;
-                collider.size = new Vector2(1f, 1f);
+                // Larger collider for easier stair interaction
+                collider.size = type == FloorTransitionType.Trapdoor
+                    ? new Vector2(1.5f, 1.5f)
+                    : new Vector2(2.5f, 2.5f);
 
                 var sr = transObj.AddComponent<SpriteRenderer>();
                 sr.color = type == FloorTransitionType.Trapdoor ? Color.magenta : Color.cyan;
+            }
+
+            // Scale stairs for visibility
+            if (type != FloorTransitionType.Trapdoor)
+            {
+                transObj.transform.localScale = Vector3.one * 1.5f;
             }
 
             transObj.transform.localPosition = transitionData.position;

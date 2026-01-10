@@ -95,7 +95,8 @@ namespace HauntedCastle.Enemies
 
         private System.Collections.IEnumerator SpawnRoomEnemiesDelayed(RoomData roomData)
         {
-            yield return new WaitForSeconds(spawnDelay);
+            // CRITICAL: Use WaitForSecondsRealtime to work when timeScale = 0
+            yield return new WaitForSecondsRealtime(spawnDelay);
             SpawnRoomEnemies(roomData);
         }
 
