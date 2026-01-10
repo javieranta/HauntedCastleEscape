@@ -420,7 +420,7 @@ namespace HauntedCastle.Effects
             int width = 16;
             int height = 4;
             var tex = new Texture2D(width, height);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             for (int y = 0; y < height; y++)
             {

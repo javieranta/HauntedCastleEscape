@@ -12,8 +12,10 @@ namespace HauntedCastle.Visuals
         public static DynamicLightingSystem Instance { get; private set; }
 
         [Header("Ambient Lighting")]
+        [Tooltip("For HD mode, use subtle ambient. For retro mode, use stronger atmosphere.")]
+        [SerializeField] private bool useHDLighting = true;
         [SerializeField] private Color ambientColor = new Color(0.15f, 0.12f, 0.2f, 0.6f);
-        [SerializeField] private float ambientIntensity = 0.4f;
+        [SerializeField] private float ambientIntensity = 0.1f; // Reduced for HD mode (was 0.4f)
 
         [Header("Torch Settings")]
         [SerializeField] private float torchRadius = 4f;
@@ -66,6 +68,12 @@ namespace HauntedCastle.Visuals
 
         private void CreateAmbientOverlay()
         {
+            // Skip ambient overlay in HD mode for cleaner textures
+            if (useHDLighting)
+            {
+                Debug.Log("[DynamicLightingSystem] HD Mode: Minimal ambient overlay for crisp textures");
+            }
+
             _ambientOverlay = new GameObject("AmbientOverlay");
             _ambientOverlay.transform.SetParent(transform);
 
@@ -76,11 +84,15 @@ namespace HauntedCastle.Visuals
             var tex = new Texture2D(size, size);
             tex.filterMode = FilterMode.Bilinear;
 
-            // Fill with ambient color
+            // Fill with ambient color (more subtle in HD mode)
+            Color overlayColor = useHDLighting
+                ? new Color(0.1f, 0.08f, 0.15f, 0.3f)  // Subtle purple tint for HD
+                : ambientColor;
+
             Color[] pixels = new Color[size * size];
             for (int i = 0; i < pixels.Length; i++)
             {
-                pixels[i] = ambientColor;
+                pixels[i] = overlayColor;
             }
             tex.SetPixels(pixels);
             tex.Apply();
@@ -88,7 +100,10 @@ namespace HauntedCastle.Visuals
             sr.sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32);
             sr.sortingLayerName = "Lighting";
             sr.sortingOrder = 1000;
-            sr.color = new Color(1, 1, 1, ambientIntensity);
+
+            // Much lower intensity in HD mode
+            float intensity = useHDLighting ? 0.1f : ambientIntensity;
+            sr.color = new Color(1, 1, 1, intensity);
 
             // Scale to cover the room
             _ambientOverlay.transform.localScale = Vector3.one * 2f;

@@ -1,6 +1,7 @@
 using UnityEngine;
 using HauntedCastle.Data;
 using HauntedCastle.Services;
+using HauntedCastle.Utils;
 
 namespace HauntedCastle.Visuals
 {
@@ -130,7 +131,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateFallbackSprite()
         {
             var tex = new Texture2D(16, 16);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear; // Smooth filtering for fallback
             Color floor = new Color(0.3f, 0.25f, 0.2f);
             for (int i = 0; i < 16 * 16; i++)
                 tex.SetPixel(i % 16, i / 16, floor);
@@ -144,33 +145,27 @@ namespace HauntedCastle.Visuals
             floorContainer.transform.SetParent(_currentRoomVisuals.transform);
             floorContainer.transform.localPosition = Vector3.zero;
 
-            Sprite floorSprite = PixelArtGenerator.GetFloorTile();
+            // Get the Midjourney floor sprite
+            Sprite floorSprite = PlaceholderSpriteGenerator.GetFloorTileSprite(roomData.floorNumber, 0);
 
-            // Calculate floor area
-            int tilesX = Mathf.CeilToInt(roomWidth / tileSize);
-            int tilesY = Mathf.CeilToInt(roomHeight / tileSize);
+            // Create a SINGLE large floor that covers the room
+            // The texture will tile naturally due to Wrap Mode = Repeat
+            var floor = new GameObject("FloorSprite");
+            floor.transform.SetParent(floorContainer.transform);
+            floor.transform.localPosition = new Vector3(0, 0, 0.1f);
 
-            float startX = -roomWidth / 2f + tileSize / 2f;
-            float startY = -roomHeight / 2f + tileSize / 2f;
+            var sr = floor.AddComponent<SpriteRenderer>();
+            sr.sprite = floorSprite;
+            sr.sortingLayerName = "Background";
+            sr.sortingOrder = 0;
+            sr.color = Color.white;
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.tileMode = SpriteTileMode.Continuous;
 
-            for (int y = 0; y < tilesY; y++)
-            {
-                for (int x = 0; x < tilesX; x++)
-                {
-                    var tile = new GameObject($"FloorTile_{x}_{y}");
-                    tile.transform.SetParent(floorContainer.transform);
-                    tile.transform.localPosition = new Vector3(startX + x * tileSize, startY + y * tileSize, 0.1f);
+            // Set the size to cover the room - texture will tile within this area
+            sr.size = new Vector2(roomWidth, roomHeight);
 
-                    var sr = tile.AddComponent<SpriteRenderer>();
-                    sr.sprite = floorSprite;
-                    sr.sortingLayerName = "Background";
-                    sr.sortingOrder = 0;
-
-                    // Vary floor color slightly based on room
-                    float variation = Mathf.PerlinNoise(x * 0.5f + roomData.floorNumber, y * 0.5f) * 0.1f;
-                    sr.color = new Color(1f - variation, 1f - variation, 1f - variation * 0.5f);
-                }
-            }
+            Debug.Log($"[RoomVisualizer] Created tiled floor: {roomWidth}x{roomHeight} using sprite {floorSprite?.name}");
         }
 
         private void CreateWalls(RoomData roomData)
@@ -179,32 +174,138 @@ namespace HauntedCastle.Visuals
             wallContainer.transform.SetParent(_currentRoomVisuals.transform);
             wallContainer.transform.localPosition = Vector3.zero;
 
-            Sprite wallSprite = PixelArtGenerator.GetWallTile();
+            // Use PlaceholderSpriteGenerator to get Midjourney wall sprites
+            Sprite wallSprite = PlaceholderSpriteGenerator.GetWallSprite(roomData.floorNumber, false);
 
             float halfWidth = roomWidth / 2f;
             float halfHeight = roomHeight / 2f;
+            float wallThickness = 1.5f; // Wall thickness
 
-            // Top wall
-            CreateWallSegment(wallContainer, wallSprite, -halfWidth, halfHeight, roomWidth, tileSize,
-                roomData.northDoor?.exists == true, DoorDirection.North, roomData.northDoor);
+            // Create single tiled wall segments instead of many tiny tiles
+            // North wall
+            CreateTiledWall(wallContainer, "NorthWall", wallSprite,
+                new Vector3(0, halfHeight + wallThickness / 2f, 0),
+                new Vector2(roomWidth + wallThickness * 2, wallThickness),
+                roomData.northDoor?.exists == true);
 
-            // Bottom wall
-            CreateWallSegment(wallContainer, wallSprite, -halfWidth, -halfHeight - tileSize, roomWidth, tileSize,
-                roomData.southDoor?.exists == true, DoorDirection.South, roomData.southDoor);
+            // South wall
+            CreateTiledWall(wallContainer, "SouthWall", wallSprite,
+                new Vector3(0, -halfHeight - wallThickness / 2f, 0),
+                new Vector2(roomWidth + wallThickness * 2, wallThickness),
+                roomData.southDoor?.exists == true);
 
-            // Left wall
-            CreateVerticalWallSegment(wallContainer, wallSprite, -halfWidth - tileSize, -halfHeight, tileSize, roomHeight,
-                roomData.westDoor?.exists == true, DoorDirection.West, roomData.westDoor);
+            // West wall
+            CreateTiledWall(wallContainer, "WestWall", wallSprite,
+                new Vector3(-halfWidth - wallThickness / 2f, 0, 0),
+                new Vector2(wallThickness, roomHeight),
+                roomData.westDoor?.exists == true);
 
-            // Right wall
-            CreateVerticalWallSegment(wallContainer, wallSprite, halfWidth, -halfHeight, tileSize, roomHeight,
-                roomData.eastDoor?.exists == true, DoorDirection.East, roomData.eastDoor);
+            // East wall
+            CreateTiledWall(wallContainer, "EastWall", wallSprite,
+                new Vector3(halfWidth + wallThickness / 2f, 0, 0),
+                new Vector2(wallThickness, roomHeight),
+                roomData.eastDoor?.exists == true);
+        }
 
-            // Corners
-            CreateCorner(wallContainer, wallSprite, -halfWidth - tileSize, halfHeight);
-            CreateCorner(wallContainer, wallSprite, halfWidth, halfHeight);
-            CreateCorner(wallContainer, wallSprite, -halfWidth - tileSize, -halfHeight - tileSize);
-            CreateCorner(wallContainer, wallSprite, halfWidth, -halfHeight - tileSize);
+        private void CreateTiledWall(GameObject parent, string name, Sprite wallSprite, Vector3 position, Vector2 size, bool hasDoor)
+        {
+            float doorGapSize = 2.5f; // Size of the door opening
+
+            if (!hasDoor)
+            {
+                // No door - create single wall
+                CreateSingleWallSegment(parent, name, wallSprite, position, size);
+            }
+            else
+            {
+                // Has door - create wall with gap
+                bool isHorizontal = size.x > size.y;
+
+                if (isHorizontal)
+                {
+                    // Horizontal wall (north/south) - split left and right
+                    float segmentWidth = (size.x - doorGapSize) / 2f;
+
+                    // Left segment
+                    CreateSingleWallSegment(parent, name + "_Left", wallSprite,
+                        position + new Vector3(-(segmentWidth + doorGapSize) / 2f, 0, 0),
+                        new Vector2(segmentWidth, size.y));
+
+                    // Right segment
+                    CreateSingleWallSegment(parent, name + "_Right", wallSprite,
+                        position + new Vector3((segmentWidth + doorGapSize) / 2f, 0, 0),
+                        new Vector2(segmentWidth, size.y));
+
+                    // Door visual (dark opening)
+                    CreateDoorOpening(parent, name + "_Door", position, new Vector2(doorGapSize, size.y));
+                }
+                else
+                {
+                    // Vertical wall (east/west) - split top and bottom
+                    float segmentHeight = (size.y - doorGapSize) / 2f;
+
+                    // Top segment
+                    CreateSingleWallSegment(parent, name + "_Top", wallSprite,
+                        position + new Vector3(0, (segmentHeight + doorGapSize) / 2f, 0),
+                        new Vector2(size.x, segmentHeight));
+
+                    // Bottom segment
+                    CreateSingleWallSegment(parent, name + "_Bottom", wallSprite,
+                        position + new Vector3(0, -(segmentHeight + doorGapSize) / 2f, 0),
+                        new Vector2(size.x, segmentHeight));
+
+                    // Door visual (dark opening)
+                    CreateDoorOpening(parent, name + "_Door", position, new Vector2(size.x, doorGapSize));
+                }
+            }
+        }
+
+        private void CreateSingleWallSegment(GameObject parent, string name, Sprite wallSprite, Vector3 position, Vector2 size)
+        {
+            var wall = new GameObject(name);
+            wall.transform.SetParent(parent.transform);
+            wall.transform.localPosition = position;
+
+            var sr = wall.AddComponent<SpriteRenderer>();
+            sr.sprite = wallSprite;
+            sr.sortingLayerName = "Walls";
+            sr.sortingOrder = 5;
+            sr.color = Color.white;
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.tileMode = SpriteTileMode.Continuous;
+            sr.size = size;
+
+            // Add collider
+            var collider = wall.AddComponent<BoxCollider2D>();
+            collider.size = size;
+
+            // Set wall layer
+            int wallLayer = LayerMask.NameToLayer("Walls");
+            if (wallLayer >= 0)
+            {
+                wall.layer = wallLayer;
+            }
+        }
+
+        private void CreateDoorOpening(GameObject parent, string name, Vector3 position, Vector2 size)
+        {
+            // Create a door sprite in the gap
+            var doorObj = new GameObject(name);
+            doorObj.transform.SetParent(parent.transform);
+            doorObj.transform.localPosition = position;
+
+            var sr = doorObj.AddComponent<SpriteRenderer>();
+            sr.sprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
+            sr.sortingLayerName = "Walls";
+            sr.sortingOrder = 3; // Behind walls but above floor
+            sr.color = Color.white;
+
+            // Use tiled mode for proper sizing
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.tileMode = SpriteTileMode.Continuous;
+            sr.size = size;
+
+            Debug.Log($"[RoomVisualizer] Created door: {name} at {position} with size {size}");
         }
 
         private void CreateWallSegment(GameObject parent, Sprite wallSprite, float startX, float y,
@@ -228,19 +329,26 @@ namespace HauntedCastle.Visuals
                 {
                     // Door tile
                     Color? keyColor = doorData?.doorType == DoorType.Locked ? GetKeyColor(doorData.requiredKeyColor) : null;
-                    sr.sprite = PixelArtGenerator.GetDoorSprite(false, keyColor);
+                    sr.sprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
                 }
                 else if (!isDoorTile)
                 {
                     sr.sprite = wallSprite;
+                    // Scale to fit tile size properly
+                    float spriteSize = wallSprite.bounds.size.x;
+                    float scale = tileSize / spriteSize;
+                    tile.transform.localScale = new Vector3(scale, scale, 1);
                 }
                 else
                 {
-                    // Door frame tiles
+                    // Door frame tiles - keep white for Midjourney textures
                     sr.sprite = wallSprite;
-                    sr.color = new Color(0.7f, 0.7f, 0.7f);
+                    float spriteSize = wallSprite.bounds.size.x;
+                    float scale = tileSize / spriteSize;
+                    tile.transform.localScale = new Vector3(scale, scale, 1);
                 }
 
+                sr.color = Color.white; // Preserve Midjourney texture colors
                 sr.sortingLayerName = "Walls";
                 sr.sortingOrder = direction == DoorDirection.North ? 0 : 10;
 
@@ -269,20 +377,27 @@ namespace HauntedCastle.Visuals
                 if (isDoorTile && i == tiles / 2)
                 {
                     Color? keyColor = doorData?.doorType == DoorType.Locked ? GetKeyColor(doorData.requiredKeyColor) : null;
-                    sr.sprite = PixelArtGenerator.GetDoorSprite(false, keyColor);
+                    sr.sprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
                     // Rotate for side doors
                     tile.transform.rotation = Quaternion.Euler(0, 0, direction == DoorDirection.West ? 90 : -90);
                 }
                 else if (!isDoorTile)
                 {
                     sr.sprite = wallSprite;
+                    // Scale to fit tile size properly
+                    float spriteSize = wallSprite.bounds.size.x;
+                    float scale = tileSize / spriteSize;
+                    tile.transform.localScale = new Vector3(scale, scale, 1);
                 }
                 else
                 {
                     sr.sprite = wallSprite;
-                    sr.color = new Color(0.7f, 0.7f, 0.7f);
+                    float spriteSize = wallSprite.bounds.size.x;
+                    float scale = tileSize / spriteSize;
+                    tile.transform.localScale = new Vector3(scale, scale, 1);
                 }
 
+                sr.color = Color.white; // Preserve Midjourney texture colors
                 sr.sortingLayerName = "Walls";
                 sr.sortingOrder = 5;
 
@@ -298,9 +413,14 @@ namespace HauntedCastle.Visuals
 
             var sr = corner.AddComponent<SpriteRenderer>();
             sr.sprite = wallSprite;
-            sr.color = new Color(0.6f, 0.6f, 0.65f);
+            sr.color = Color.white; // Preserve Midjourney texture colors
             sr.sortingLayerName = "Walls";
             sr.sortingOrder = 5;
+
+            // Scale to fit tile size properly
+            float spriteSize = wallSprite.bounds.size.x;
+            float scale = tileSize / spriteSize;
+            corner.transform.localScale = new Vector3(scale, scale, 1);
 
             // NOTE: Don't add colliders here - purely visual
         }
@@ -458,7 +578,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateBookshelfSprite()
         {
             var tex = new Texture2D(32, 32);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color wood = new Color(0.4f, 0.25f, 0.15f);
             Color woodDark = new Color(0.3f, 0.18f, 0.1f);
@@ -505,7 +625,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateThroneSprite()
         {
             var tex = new Texture2D(32, 32);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color gold = new Color(0.9f, 0.75f, 0.2f);
             Color red = new Color(0.6f, 0.1f, 0.1f);
@@ -554,7 +674,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateTableSprite()
         {
             var tex = new Texture2D(32, 16);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color wood = new Color(0.5f, 0.35f, 0.2f);
             Color woodDark = new Color(0.4f, 0.25f, 0.15f);
@@ -585,7 +705,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateBarrelSprite()
         {
             var tex = new Texture2D(16, 16);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color wood = new Color(0.5f, 0.35f, 0.2f);
             Color band = new Color(0.4f, 0.4f, 0.45f);
@@ -616,7 +736,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateWeaponRackSprite()
         {
             var tex = new Texture2D(32, 32);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color wood = new Color(0.4f, 0.25f, 0.15f);
             Color metal = new Color(0.6f, 0.6f, 0.7f);
@@ -660,7 +780,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateChainsSprite()
         {
             var tex = new Texture2D(16, 32);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color chain = new Color(0.5f, 0.5f, 0.55f);
 
@@ -692,7 +812,7 @@ namespace HauntedCastle.Visuals
         private Sprite CreateTorchSprite()
         {
             var tex = new Texture2D(8, 16);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color wood = new Color(0.5f, 0.3f, 0.15f);
             Color flame1 = new Color(1f, 0.8f, 0.2f);

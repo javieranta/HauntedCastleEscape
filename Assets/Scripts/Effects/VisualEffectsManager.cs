@@ -323,7 +323,7 @@ namespace HauntedCastle.Effects
                 try
                 {
                     var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
-                    tex.filterMode = FilterMode.Point;
+                    tex.filterMode = FilterMode.Bilinear;
 
                     for (int x = 0; x < 4; x++)
                     {

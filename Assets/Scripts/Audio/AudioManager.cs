@@ -219,15 +219,13 @@ namespace HauntedCastle.Audio
 
         #region SFX Methods
 
-        // TEMPORARILY DISABLED - Testing if sound causes freeze
-        private bool _soundDisabled = true;
+        // Sound system enabled
+        private bool _soundDisabled = false;
 
         public void PlaySFX(SoundEffect effect)
         {
-            // DISABLED FOR TESTING - uncomment to re-enable
             if (_soundDisabled)
             {
-                Debug.Log($"[AudioManager] Sound DISABLED - would play: {effect}");
                 return;
             }
 
@@ -240,7 +238,6 @@ namespace HauntedCastle.Audio
 
         public void PlaySFX(AudioClip clip)
         {
-            // DISABLED FOR TESTING
             if (_soundDisabled) return;
 
             if (clip != null)

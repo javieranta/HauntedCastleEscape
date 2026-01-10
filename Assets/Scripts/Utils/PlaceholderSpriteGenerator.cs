@@ -266,6 +266,10 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetSpiderSprite()
         {
+            // PRIORITY: New HD Smooth sprites (512x512 with proper textures)
+            try { return Visuals.HDSmoothSpriteGenerator.GetSpiderSprite(); }
+            catch { /* Fall back to other generators */ }
+
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetSpiderSprite(); }
@@ -600,8 +604,67 @@ namespace HauntedCastle.Utils
 
         // ==================== Environment Sprites ====================
 
+        // Cache for loaded Midjourney sprites
+        private static Sprite _cachedFloorSprite;
+        private static Sprite _cachedWallSprite;
+        private static bool _floorSpriteChecked = false;
+        private static bool _wallSpriteChecked = false;
+
         public static Sprite GetFloorTileSprite(int floorLevel, int variation = 0)
         {
+            // Return cached sprite if already loaded
+            if (_floorSpriteChecked && _cachedFloorSprite != null)
+            {
+                return _cachedFloorSprite;
+            }
+
+            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
+            string[] floorPaths = new string[]
+            {
+                "Sprites/Environment/Floors/stone_floor",
+                "Sprites/Environment/Floors/wood_floor"
+            };
+
+            foreach (string path in floorPaths)
+            {
+                // Try loading as Sprite first
+                Sprite imported = Resources.Load<Sprite>(path);
+                if (imported != null)
+                {
+                    // Log detailed texture info
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded floor sprite from {path}");
+                    Debug.Log($"  -> Texture: {imported.texture.name}, Size: {imported.texture.width}x{imported.texture.height}");
+                    Debug.Log($"  -> Sprite: {imported.name}, Rect: {imported.rect}, PPU: {imported.pixelsPerUnit}");
+                    Debug.Log($"  -> FilterMode: {imported.texture.filterMode}, Format: {imported.texture.format}");
+                    // Don't override filter mode - use import settings
+                    _cachedFloorSprite = imported;
+                    _floorSpriteChecked = true;
+                    return imported;
+                }
+
+                // Try loading as Texture2D and convert to Sprite
+                Texture2D tex = Resources.Load<Texture2D>(path);
+                if (tex != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded as Texture2D, converting to Sprite: {path}");
+                    Debug.Log($"  -> Texture: {tex.name}, Size: {tex.width}x{tex.height}, Format: {tex.format}");
+                    // Don't override filter mode
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+                    _cachedFloorSprite = sprite;
+                    _floorSpriteChecked = true;
+                    return sprite;
+                }
+
+                Debug.LogWarning($"[PlaceholderSpriteGenerator] Could not load: {path}");
+            }
+
+            Debug.LogError("[PlaceholderSpriteGenerator] NO Midjourney floor sprites found! Using procedural fallback.");
+            _floorSpriteChecked = true;
+
+            // PRIORITY 2: HD Smooth procedural sprites (512x512)
+            try { return Visuals.HDSmoothSpriteGenerator.GetStoneFloorTile(variation + floorLevel * 10); }
+            catch { /* Fall back to other generators */ }
+
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetFloorTileSprite(floorLevel, variation); }
@@ -629,6 +692,60 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetWallSprite(int floorLevel, bool isVertical = false)
         {
+            // Return cached sprite if already loaded
+            if (_wallSpriteChecked && _cachedWallSprite != null)
+            {
+                return _cachedWallSprite;
+            }
+
+            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
+            string[] wallPaths = new string[]
+            {
+                "Sprites/Environment/Walls/stone_wall",
+                "Sprites/Environment/Walls/wall_stone",
+                "Sprites/Environment/Walls/wall"
+            };
+
+            foreach (string path in wallPaths)
+            {
+                // Try loading as Sprite first
+                Sprite imported = Resources.Load<Sprite>(path);
+                if (imported != null)
+                {
+                    // Log detailed texture info
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded wall sprite from {path}");
+                    Debug.Log($"  -> Texture: {imported.texture.name}, Size: {imported.texture.width}x{imported.texture.height}");
+                    Debug.Log($"  -> Sprite: {imported.name}, Rect: {imported.rect}, PPU: {imported.pixelsPerUnit}");
+                    Debug.Log($"  -> FilterMode: {imported.texture.filterMode}, Format: {imported.texture.format}");
+                    // Don't override filter mode - use import settings
+                    _cachedWallSprite = imported;
+                    _wallSpriteChecked = true;
+                    return imported;
+                }
+
+                // Try loading as Texture2D and convert to Sprite
+                Texture2D tex = Resources.Load<Texture2D>(path);
+                if (tex != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded wall as Texture2D, converting to Sprite: {path}");
+                    Debug.Log($"  -> Texture: {tex.name}, Size: {tex.width}x{tex.height}, Format: {tex.format}");
+                    // Don't override filter mode
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+                    _cachedWallSprite = sprite;
+                    _wallSpriteChecked = true;
+                    return sprite;
+                }
+
+                Debug.LogWarning($"[PlaceholderSpriteGenerator] Could not load wall: {path}");
+            }
+
+            Debug.LogError("[PlaceholderSpriteGenerator] NO Midjourney wall sprites found! Using procedural fallback.");
+            _wallSpriteChecked = true;
+
+            // PRIORITY 2: HD Smooth procedural sprites (512x512)
+            try { return Visuals.HDSmoothSpriteGenerator.GetStoneBrickWall(floorLevel); }
+            catch { /* Fall back to other generators */ }
+
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetWallSprite(floorLevel, isVertical); }
@@ -654,8 +771,64 @@ namespace HauntedCastle.Utils
             return GetSquareSprite($"Wall_{floorLevel}_{isVertical}", wallColor, 32);
         }
 
+        // Cache for loaded Midjourney door sprite
+        private static Sprite _cachedDoorSprite;
+        private static bool _doorSpriteChecked = false;
+
         public static Sprite GetDoorSprite(bool isOpen, string keyType = "")
         {
+            // For open doors, return a dark/transparent sprite (doorway)
+            if (isOpen)
+            {
+                return GetSquareSprite("Door_Open", new Color(0.08f, 0.06f, 0.04f, 0.5f), 32);
+            }
+
+            // Return cached sprite if already loaded
+            if (_doorSpriteChecked && _cachedDoorSprite != null)
+            {
+                return _cachedDoorSprite;
+            }
+
+            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
+            string[] doorPaths = new string[]
+            {
+                "Sprites/Environment/Doors/wooden_door",
+                "Sprites/Environment/Doors/door",
+                "Sprites/Environment/Doors/castle_door"
+            };
+
+            foreach (string path in doorPaths)
+            {
+                // Try loading as Sprite first
+                Sprite imported = Resources.Load<Sprite>(path);
+                if (imported != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded door sprite from {path}");
+                    Debug.Log($"  -> Texture: {imported.texture.name}, Size: {imported.texture.width}x{imported.texture.height}");
+                    _cachedDoorSprite = imported;
+                    _doorSpriteChecked = true;
+                    return imported;
+                }
+
+                // Try loading as Texture2D and convert to Sprite
+                Texture2D tex = Resources.Load<Texture2D>(path);
+                if (tex != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded door as Texture2D, converting to Sprite: {path}");
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
+                    _cachedDoorSprite = sprite;
+                    _doorSpriteChecked = true;
+                    return sprite;
+                }
+            }
+
+            Debug.LogWarning("[PlaceholderSpriteGenerator] No Midjourney door sprite found, using procedural fallback");
+            _doorSpriteChecked = true;
+
+            // PRIORITY 2: HD Smooth sprites (procedural fallback)
+            try { return Visuals.HDSmoothSpriteGenerator.GetDoorSprite(isOpen); }
+            catch { /* Fall back to other generators */ }
+
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetDoorSprite(isOpen, keyType); }
@@ -671,7 +844,7 @@ namespace HauntedCastle.Utils
                 try { return EnhancedSpriteGenerator.GetDoorSprite(isOpen, keyType); }
                 catch { /* Fall back to simple shape */ }
             }
-            Color doorColor = isOpen ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.45f, 0.3f, 0.2f);
+            Color doorColor = new Color(0.45f, 0.3f, 0.2f);
             return GetSquareSprite($"Door_{isOpen}_{keyType}", doorColor, 32);
         }
 
@@ -698,6 +871,10 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetTorchSprite(int frame = 0)
         {
+            // PRIORITY: New HD Smooth sprites (512x512 with proper textures)
+            try { return Visuals.HDSmoothSpriteGenerator.GetTorchSprite(); }
+            catch { /* Fall back to other generators */ }
+
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetTorchSprite(frame); }
@@ -730,6 +907,10 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetCobwebSprite()
         {
+            // PRIORITY: New HD Smooth sprites (512x512 with proper textures)
+            try { return Visuals.HDSmoothSpriteGenerator.GetCobwebSprite(); }
+            catch { /* Fall back to other generators */ }
+
             if (_usePhotorealisticSprites)
             {
                 try { return PhotorealisticSpriteGenerator.GetCobwebSprite(); }
@@ -750,6 +931,10 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetBarrelSprite()
         {
+            // PRIORITY: New HD Smooth sprites (512x512 with proper textures)
+            try { return Visuals.HDSmoothSpriteGenerator.GetBarrelSprite(); }
+            catch { /* Fall back to other generators */ }
+
             if (_usePhotorealisticSprites)
             {
                 try { return PhotorealisticSpriteGenerator.GetBarrelSprite(); }
@@ -814,7 +999,7 @@ namespace HauntedCastle.Utils
         private static Texture2D CreateSquareTexture(Color color, int size)
         {
             Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Point;
+            texture.filterMode = FilterMode.Bilinear;
 
             Color[] pixels = new Color[size * size];
             Color borderColor = color * 0.6f;
@@ -844,7 +1029,7 @@ namespace HauntedCastle.Utils
         private static Texture2D CreateCircleTexture(Color color, int size)
         {
             Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Point;
+            texture.filterMode = FilterMode.Bilinear;
 
             Color[] pixels = new Color[size * size];
             Color borderColor = color * 0.6f;
@@ -883,7 +1068,7 @@ namespace HauntedCastle.Utils
         private static Texture2D CreateDiamondTexture(Color color, int size)
         {
             Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Point;
+            texture.filterMode = FilterMode.Bilinear;
 
             Color[] pixels = new Color[size * size];
             Color borderColor = color * 0.6f;
@@ -922,7 +1107,7 @@ namespace HauntedCastle.Utils
         private static Texture2D CreateTriangleTexture(Color color, int size)
         {
             Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Point;
+            texture.filterMode = FilterMode.Bilinear;
 
             Color[] pixels = new Color[size * size];
             Color borderColor = color * 0.6f;

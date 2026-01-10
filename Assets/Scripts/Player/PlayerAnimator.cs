@@ -29,13 +29,17 @@ namespace HauntedCastle.Player
         [SerializeField] private float walkFrameRate = 0.15f;
         [SerializeField] private float attackDuration = 0.2f;
 
+        [Header("Sprite Sizing")]
+        [SerializeField] private float targetSpriteWorldSize = 1f; // Target size in world units
+        [SerializeField] private bool autoScaleSprite = true;
+
         [Header("Procedural Animation")]
-        // DISABLED - procedural animation was resetting player position and preventing movement
-        [SerializeField] private bool useProceduralAnimation = false;
-        [SerializeField] private float idleBobAmount = 0.03f;
-        [SerializeField] private float idleBobSpeed = 2.5f;
-        [SerializeField] private float walkBounceAmount = 0.06f;
-        [SerializeField] private float walkBounceSpeed = 10f;
+        // Scale-based animation (safe for physics - doesn't modify position)
+        [SerializeField] private bool useScaleAnimation = true;
+        [SerializeField] private float idleBreathAmount = 0.05f;
+        [SerializeField] private float idleBreathSpeed = 2.5f;
+        [SerializeField] private float walkSquashAmount = 0.15f;
+        [SerializeField] private float walkSquashSpeed = 16f;
 
         [Header("Character Data")]
         [SerializeField] private CharacterData characterData;
@@ -49,7 +53,6 @@ namespace HauntedCastle.Player
         private bool _isAttacking;
         private float _attackTimer;
         private float _animationTime;
-        private Vector3 _basePosition;
 
         // Direction tracking
         private enum Direction { Down, Up, Left, Right }
@@ -60,19 +63,91 @@ namespace HauntedCastle.Player
             _spriteRenderer = GetComponent<SpriteRenderer>();
             _proceduralAnimator = GetComponent<ProceduralSpriteAnimator>();
 
-            // Add procedural animator if not present and enabled
-            // NOTE: Disabled by default as ProceduralSpriteAnimator conflicts with physics movement
-            if (useProceduralAnimation && _proceduralAnimator == null)
-            {
-                // _proceduralAnimator = gameObject.AddComponent<ProceduralSpriteAnimator>();
-                Debug.LogWarning("[PlayerAnimator] ProceduralSpriteAnimator disabled - conflicts with physics movement");
-            }
+            // Try to load sprite from Resources based on character type
+            TryLoadSpriteFromResources();
         }
 
         private void Start()
         {
-            _basePosition = transform.localPosition;
+            // Capture base scale after Awake has done any auto-scaling
+            _baseScale = transform.localScale;
             UpdateIdleSprite();
+
+            Debug.Log($"[PlayerAnimator] Base scale set to: {_baseScale}");
+        }
+
+        private Vector3 _baseScale = Vector3.one;
+
+        /// <summary>
+        /// Attempts to load character sprite from Resources folder.
+        /// </summary>
+        private void TryLoadSpriteFromResources()
+        {
+            // Try loading knight sprite (default for now)
+            string[] characterPaths = new string[]
+            {
+                "Sprites/Characters/Knight/knight_idle",
+                "Sprites/Characters/Wizard/wizard_idle",
+                "Sprites/Characters/Serf/serf_idle"
+            };
+
+            foreach (string path in characterPaths)
+            {
+                Sprite loadedSprite = Resources.Load<Sprite>(path);
+                if (loadedSprite != null)
+                {
+                    Debug.Log($"[PlayerAnimator] Loaded sprite from: {path}");
+                    idleDown = loadedSprite;
+                    idleUp = loadedSprite;
+                    idleLeft = loadedSprite;
+                    idleRight = loadedSprite;
+
+                    // Apply immediately
+                    if (_spriteRenderer != null)
+                    {
+                        _spriteRenderer.sprite = loadedSprite;
+
+                        // Fix filter mode for smooth rendering (not pixelated)
+                        if (loadedSprite.texture != null)
+                        {
+                            loadedSprite.texture.filterMode = FilterMode.Bilinear;
+                            Debug.Log($"[PlayerAnimator] Set texture filter to Bilinear for smooth rendering");
+                        }
+
+                        // Auto-scale large sprites to fit target world size
+                        if (autoScaleSprite)
+                        {
+                            ScaleSpriteToTargetSize(loadedSprite);
+                        }
+                    }
+                    return;
+                }
+            }
+
+            Debug.Log("[PlayerAnimator] No custom sprites found, using defaults");
+        }
+
+        /// <summary>
+        /// Scales the transform so the sprite appears at the target world size.
+        /// </summary>
+        private void ScaleSpriteToTargetSize(Sprite sprite)
+        {
+            if (sprite == null) return;
+
+            // Calculate the sprite's current world size
+            float spriteWorldHeight = sprite.bounds.size.y;
+            float spriteWorldWidth = sprite.bounds.size.x;
+            float maxDimension = Mathf.Max(spriteWorldWidth, spriteWorldHeight);
+
+            if (maxDimension <= 0) return;
+
+            // Calculate scale factor to reach target size
+            float scaleFactor = targetSpriteWorldSize / maxDimension;
+
+            // Apply uniform scale
+            transform.localScale = Vector3.one * scaleFactor;
+
+            Debug.Log($"[PlayerAnimator] Scaled sprite from {maxDimension:F2} to {targetSpriteWorldSize:F2} (scale: {scaleFactor:F3})");
         }
 
         private void Update()
@@ -102,34 +177,39 @@ namespace HauntedCastle.Player
                 }
             }
 
-            // Apply procedural animation if not using component
-            // NOTE: Disabled by default as it conflicts with physics-based movement
-            if (useProceduralAnimation && _proceduralAnimator == null)
+            // Apply scale-based procedural animation (safe for physics)
+            if (useScaleAnimation)
             {
-                // ApplyProceduralAnimation(); // DISABLED - conflicts with Rigidbody2D movement
+                ApplyScaleAnimation();
             }
         }
 
-        private void ApplyProceduralAnimation()
+        private void ApplyScaleAnimation()
         {
-            if (_isAttacking) return;
+            if (_isAttacking)
+            {
+                // Quick squash during attack
+                float attackProgress = _attackTimer / attackDuration;
+                float squash = 1f + Mathf.Sin(attackProgress * Mathf.PI) * 0.15f;
+                transform.localScale = new Vector3(_baseScale.x * squash, _baseScale.y / squash, _baseScale.z);
+                return;
+            }
 
             if (_isMoving)
             {
-                // Walk bounce
-                float bounce = Mathf.Abs(Mathf.Sin(_animationTime * walkBounceSpeed)) * walkBounceAmount;
-                transform.localPosition = _basePosition + Vector3.up * bounce;
-
-                // Lean into movement
-                float lean = Mathf.Sin(_animationTime * walkBounceSpeed) * 3f * _facingDirection.x;
-                transform.localRotation = Quaternion.Euler(0, 0, lean);
+                // Bouncy squash/stretch while walking
+                float bounce = Mathf.Sin(_animationTime * walkSquashSpeed);
+                float scaleX = _baseScale.x * (1f + bounce * walkSquashAmount * 0.5f);
+                float scaleY = _baseScale.y * (1f - bounce * walkSquashAmount);
+                transform.localScale = new Vector3(scaleX, scaleY, _baseScale.z);
             }
             else
             {
-                // Idle bobbing
-                float bob = Mathf.Sin(_animationTime * idleBobSpeed) * idleBobAmount;
-                transform.localPosition = _basePosition + Vector3.up * bob;
-                transform.localRotation = Quaternion.identity;
+                // Gentle breathing when idle
+                float breath = Mathf.Sin(_animationTime * idleBreathSpeed);
+                float scaleX = _baseScale.x * (1f + breath * idleBreathAmount * 0.3f);
+                float scaleY = _baseScale.y * (1f + breath * idleBreathAmount);
+                transform.localScale = new Vector3(scaleX, scaleY, _baseScale.z);
             }
         }
 

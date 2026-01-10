@@ -20,7 +20,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("wizard_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             // Clear with transparency
             ClearTexture(tex);
@@ -55,7 +55,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("knight_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             // Metal armor with realistic shading
@@ -95,7 +95,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("serf_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color skinTone = new Color(0.85f, 0.7f, 0.55f);
@@ -135,7 +135,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("ghost_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             // Ethereal flowing ghost shape
@@ -167,7 +167,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("skeleton_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color boneWhite = new Color(0.92f, 0.9f, 0.85f);
@@ -209,7 +209,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("spider_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color bodyDark = new Color(0.15f, 0.1f, 0.1f);
@@ -250,7 +250,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("bat_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color bodyColor = new Color(0.2f, 0.18f, 0.22f);
@@ -287,7 +287,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("demon_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color skinRed = new Color(0.7f, 0.15f, 0.1f);
@@ -337,7 +337,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue("mummy_hd", out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color bandageLight = new Color(0.85f, 0.8f, 0.7f);
@@ -382,7 +382,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color baseColor, lightColor, darkColor, groutColor;
 
@@ -423,7 +423,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color baseColor, lightColor, darkColor, mortarColor;
 
@@ -463,7 +463,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color woodDark = new Color(0.35f, 0.22f, 0.12f);
@@ -500,7 +500,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             // Torch handle
@@ -529,7 +529,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(HD_SIZE, HD_SIZE);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color stoneBase = new Color(0.45f, 0.42f, 0.38f);
@@ -559,7 +559,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(32, 64);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color metalDark = new Color(0.25f, 0.22f, 0.2f);
@@ -583,7 +583,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(48, 48);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color webColor = new Color(0.9f, 0.9f, 0.88f, 0.7f);
@@ -603,7 +603,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(32, 32);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color boneWhite = new Color(0.9f, 0.88f, 0.82f);
@@ -623,7 +623,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(48, 56);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color woodDark = new Color(0.4f, 0.28f, 0.15f);
@@ -644,7 +644,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(64, 48);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color metalGold = new Color(0.75f, 0.6f, 0.25f);
@@ -665,7 +665,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(48, 40);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color frameDark = new Color(0.45f, 0.32f, 0.15f);
@@ -686,7 +686,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(48, 64);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color metalBase = new Color(0.55f, 0.52f, 0.48f);
@@ -708,7 +708,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(32, 56);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color[] bannerColors = {
@@ -735,7 +735,7 @@ namespace HauntedCastle.Utils
             if (_spriteCache.TryGetValue(key, out var cached)) return cached;
 
             var tex = new Texture2D(40, 56);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
             ClearTexture(tex);
 
             Color frameStone = new Color(0.5f, 0.48f, 0.45f);

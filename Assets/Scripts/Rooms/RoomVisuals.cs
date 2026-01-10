@@ -15,7 +15,7 @@ namespace HauntedCastle.Rooms
         [SerializeField] private float roomWidth = 14f;
         [SerializeField] private float roomHeight = 10f;
         [SerializeField] private float wallThickness = 1f;
-        [SerializeField] private float tileSize = 2f;
+        [SerializeField] private float tileSize = 1.5f; // Good size for Midjourney texture tiling
 
         [Header("Door Dimensions")]
         [SerializeField] private float doorWidth = 2f;
@@ -67,33 +67,27 @@ namespace HauntedCastle.Rooms
             floorContainer.transform.SetParent(transform);
             floorContainer.transform.localPosition = Vector3.zero;
 
-            // Calculate number of tiles needed
-            int tilesX = Mathf.CeilToInt(roomWidth / tileSize);
-            int tilesY = Mathf.CeilToInt(roomHeight / tileSize);
+            // Get the Midjourney floor sprite
+            Sprite floorSprite = PlaceholderSpriteGenerator.GetFloorTileSprite(_floorLevel, 0);
 
-            float startX = -(tilesX * tileSize) / 2f + tileSize / 2f;
-            float startY = -(tilesY * tileSize) / 2f + tileSize / 2f;
+            // Create a SINGLE large floor that covers the room
+            // The texture will tile naturally due to Wrap Mode = Repeat
+            var floor = new GameObject("FloorSprite");
+            floor.transform.SetParent(floorContainer.transform);
+            floor.transform.localPosition = Vector3.zero;
 
-            int variation = 0;
-            for (int x = 0; x < tilesX; x++)
-            {
-                for (int y = 0; y < tilesY; y++)
-                {
-                    var tileObj = new GameObject($"Tile_{x}_{y}");
-                    tileObj.transform.SetParent(floorContainer.transform);
-                    tileObj.transform.localPosition = new Vector3(
-                        startX + x * tileSize,
-                        startY + y * tileSize,
-                        0
-                    );
-                    tileObj.transform.localScale = new Vector3(tileSize / 32f * 2f, tileSize / 32f * 2f, 1);
+            var sr = floor.AddComponent<SpriteRenderer>();
+            sr.sprite = floorSprite;
+            sr.sortingLayerName = "Background";
+            sr.sortingOrder = -10;
+            sr.color = Color.white;
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.tileMode = SpriteTileMode.Continuous;
 
-                    var sr = tileObj.AddComponent<SpriteRenderer>();
-                    sr.sprite = PlaceholderSpriteGenerator.GetFloorTileSprite(_floorLevel, variation++);
-                    sr.sortingLayerName = "Background";
-                    sr.sortingOrder = -10;
-                }
-            }
+            // Set the size to cover the room - texture will tile within this area
+            sr.size = new Vector2(roomWidth, roomHeight);
+
+            Debug.Log($"[RoomVisuals] Created tiled floor: {roomWidth}x{roomHeight} using sprite {floorSprite?.name}");
         }
 
         private void CreateThemedWalls()
@@ -181,15 +175,8 @@ namespace HauntedCastle.Rooms
 
         private void ApplyAmbientTint(Color ambientColor)
         {
-            // Slightly tint all sprites in the room
-            var renderers = GetComponentsInChildren<SpriteRenderer>();
-            foreach (var renderer in renderers)
-            {
-                if (renderer.sortingLayerName == "Background")
-                {
-                    renderer.color = Color.Lerp(renderer.color, ambientColor, 0.3f);
-                }
-            }
+            // Don't apply ambient tint - preserve Midjourney texture colors
+            // If needed, ambient can be done via lighting instead
         }
 
         private void CreateWall(string name, Vector2 position, Vector2 size, bool hasDoor, bool isVertical, Color wallColor, Color doorwayColor)
@@ -242,18 +229,20 @@ namespace HauntedCastle.Rooms
             // Use wall sprite for vertical walls
             bool isVertical = size.x < size.y;
             sr.sprite = PlaceholderSpriteGenerator.GetWallSprite(_floorLevel, isVertical);
-            sr.color = color;
+
+            // Keep white color to show Midjourney texture colors properly
+            sr.color = Color.white;
             sr.sortingLayerName = "Walls";
             sr.sortingOrder = 0;
 
-            // Scale sprite to fit wall size
-            float scaleX = size.x / 1f;
-            float scaleY = size.y / 1f;
-            wallObj.transform.localScale = new Vector3(scaleX, scaleY, 1);
+            // Use tiled rendering for proper texture display
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.tileMode = SpriteTileMode.Continuous;
+            sr.size = size;
 
-            // Add collider (use original size, not scaled)
+            // Add collider with proper size
             var collider = wallObj.AddComponent<BoxCollider2D>();
-            collider.size = Vector2.one; // Will be scaled by transform
+            collider.size = size;
 
             int wallLayer = LayerMask.NameToLayer("Walls");
             if (wallLayer >= 0)
@@ -264,20 +253,24 @@ namespace HauntedCastle.Rooms
 
         private void CreateDoorway(string name, Vector2 position, bool isVertical, Color color)
         {
-            var doorwayObj = new GameObject(name);
-            doorwayObj.transform.SetParent(transform);
-            doorwayObj.transform.localPosition = position;
+            // Create a door sprite in the doorway
+            var doorObj = new GameObject(name);
+            doorObj.transform.SetParent(transform);
+            doorObj.transform.localPosition = position;
 
-            var sr = doorwayObj.AddComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderSpriteGenerator.GetDoorSprite(true, "");
-            sr.color = color;
-            sr.sortingLayerName = "Background";
-            sr.sortingOrder = -5;
+            var sr = doorObj.AddComponent<SpriteRenderer>();
+            sr.sprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
+            sr.sortingLayerName = "Walls";
+            sr.sortingOrder = 3; // Behind walls but above floor
+            sr.color = Color.white;
 
-            // Scale for doorway
-            float scaleX = isVertical ? wallThickness / 1f : doorWidth / 1f;
-            float scaleY = isVertical ? doorWidth / 1f : wallThickness / 1f;
-            doorwayObj.transform.localScale = new Vector3(scaleX, scaleY, 1);
+            // Use tiled mode for proper sizing
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.tileMode = SpriteTileMode.Continuous;
+
+            // Size based on orientation
+            Vector2 doorSize = isVertical ? new Vector2(wallThickness, doorWidth) : new Vector2(doorWidth, wallThickness);
+            sr.size = doorSize;
         }
 
         private void CreateCorner(string name, Vector2 position, Color color)
@@ -288,14 +281,17 @@ namespace HauntedCastle.Rooms
 
             var sr = cornerObj.AddComponent<SpriteRenderer>();
             sr.sprite = PlaceholderSpriteGenerator.GetWallSprite(_floorLevel, false);
-            sr.color = color;
+            sr.color = Color.white; // Keep original Midjourney texture colors
             sr.sortingLayerName = "Walls";
             sr.sortingOrder = 1;
 
-            cornerObj.transform.localScale = new Vector3(wallThickness, wallThickness, 1);
+            // Use tiled rendering for proper texture display
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.tileMode = SpriteTileMode.Continuous;
+            sr.size = new Vector2(wallThickness, wallThickness);
 
             var collider = cornerObj.AddComponent<BoxCollider2D>();
-            collider.size = Vector2.one;
+            collider.size = new Vector2(wallThickness, wallThickness);
 
             int wallLayer = LayerMask.NameToLayer("Walls");
             if (wallLayer >= 0)

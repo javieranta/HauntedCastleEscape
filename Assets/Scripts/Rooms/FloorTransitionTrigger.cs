@@ -104,7 +104,7 @@ namespace HauntedCastle.Rooms
             // Create LARGE, clearly visible arrow texture (64x64 for visibility)
             int size = 64;
             var tex = new Texture2D(size, size);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             // Bright, vibrant colors for maximum visibility
             Color arrowColor = transitionType == FloorTransitionType.StairsUp
@@ -190,7 +190,7 @@ namespace HauntedCastle.Rooms
             int width = text.Length * 16;
             int height = 24;
             var tex = new Texture2D(width, height);
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = FilterMode.Bilinear;
 
             Color textColor = transitionType == FloorTransitionType.StairsUp
                 ? new Color(0.2f, 1f, 0.2f, 1f)

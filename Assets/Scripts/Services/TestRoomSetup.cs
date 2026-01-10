@@ -191,8 +191,8 @@ namespace HauntedCastle.Services
             hiddenTunnel.itemSpawns.Add(CreateItemSpawn("special_wreath", new Vector2(3f, 0f)));
             rooms.Add(hiddenTunnel);
 
-            // Dungeon room - dangerous!
-            var dungeon1 = CreateRoomData("room_dungeon_1", "Dungeon Cell", -1);
+            // Dungeon room - dangerous! (Floor 0 = Basement/Dungeon level)
+            var dungeon1 = CreateRoomData("room_dungeon_1", "Dungeon Cell", 0);
             dungeon1.trapdoor = CreateFloorTransition("room_southeast"); // Can go back up
             dungeon1.itemSpawns.Add(CreateItemSpawn("key_red", new Vector2(0f, 0f)));
             // Add hazards

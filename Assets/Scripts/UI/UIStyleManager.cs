@@ -225,10 +225,10 @@ namespace HauntedCastle.UI
         {
             if (image == null || image.sprite == null) return;
 
-            // Ensure pixel-perfect rendering
+            // Ensure smooth rendering for modern look
             if (image.sprite.texture != null)
             {
-                image.sprite.texture.filterMode = FilterMode.Point;
+                image.sprite.texture.filterMode = FilterMode.Bilinear;
             }
         }
 

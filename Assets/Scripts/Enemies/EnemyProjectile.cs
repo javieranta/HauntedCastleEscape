@@ -149,7 +149,7 @@ namespace HauntedCastle.Enemies
 
                     tex.SetPixels(pixels);
                     tex.Apply(false, false);
-                    tex.filterMode = FilterMode.Point;
+                    tex.filterMode = FilterMode.Bilinear;
 
                     _cachedProjectileSprite = Sprite.Create(tex, new Rect(0, 0, 16, 16), new Vector2(0.5f, 0.5f), 16f);
                 }
@@ -292,7 +292,7 @@ namespace HauntedCastle.Enemies
                 }
                 tex.SetPixels(pixels);
                 tex.Apply();
-                tex.filterMode = FilterMode.Point;
+                tex.filterMode = FilterMode.Bilinear;
                 _simpleProjectileSprite = Sprite.Create(tex, new Rect(0, 0, 8, 8), new Vector2(0.5f, 0.5f), 8f);
             }
             return _simpleProjectileSprite;
