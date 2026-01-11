@@ -109,17 +109,17 @@ namespace HauntedCastle.Effects
 
         private void InitializeDefaults()
         {
-            // Basement - dark, dusty, cold
+            // Basement - dark, dusty, cold (but still playable visibility)
             basementAtmosphere = new FloorAtmosphere
             {
-                ambientColor = new Color(0.5f, 0.4f, 0.55f),
-                fogColor = new Color(0.15f, 0.1f, 0.2f, 0.4f),
-                fogDensity = 0.03f,
-                vignetteIntensity = 0.6f,
-                vignetteColor = new Color(0.1f, 0.05f, 0.15f),
+                ambientColor = new Color(0.75f, 0.65f, 0.8f),   // Brighter purple tint for better visibility
+                fogColor = new Color(0.2f, 0.15f, 0.25f, 0.25f), // Lighter fog
+                fogDensity = 0.02f,
+                vignetteIntensity = 0.35f,  // Reduced vignette for better visibility
+                vignetteColor = new Color(0.15f, 0.1f, 0.2f),
                 enableDustParticles = true,
-                dustColor = new Color(0.6f, 0.5f, 0.7f, 0.4f),
-                particleRate = 8f
+                dustColor = new Color(0.6f, 0.5f, 0.7f, 0.3f),
+                particleRate = 6f
             };
 
             // Castle - warm, golden, elegant
@@ -197,9 +197,10 @@ namespace HauntedCastle.Effects
         {
             float t = _transitionProgress;
 
-            // Blend ambient color
-            Color ambient = Color.Lerp(_currentAtmosphere.ambientColor, _targetAtmosphere.ambientColor, t);
-            RenderSettings.ambientLight = ambient;
+            // NOTE: Do NOT modify RenderSettings.ambientLight as it affects the entire scene
+            // and can make the game too dark. The ambient color is handled per-sprite instead.
+            // Color ambient = Color.Lerp(_currentAtmosphere.ambientColor, _targetAtmosphere.ambientColor, t);
+            // RenderSettings.ambientLight = ambient;
 
             // Blend vignette
             if (vignetteRenderer != null)
@@ -347,7 +348,8 @@ namespace HauntedCastle.Effects
             vignetteRenderer.sprite = CreateVignetteSprite();
             vignetteRenderer.sortingLayerName = "UI";
             vignetteRenderer.sortingOrder = 999;
-            vignetteRenderer.color = new Color(0, 0, 0, vignetteIntensity);
+            // Start with transparent vignette - will be set by atmosphere transitions
+            vignetteRenderer.color = new Color(0, 0, 0, 0);
 
             // Scale to cover screen
             vignetteOverlay.transform.localScale = new Vector3(25, 20, 1);

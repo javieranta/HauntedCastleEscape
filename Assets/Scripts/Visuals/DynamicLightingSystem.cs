@@ -68,10 +68,11 @@ namespace HauntedCastle.Visuals
 
         private void CreateAmbientOverlay()
         {
-            // Skip ambient overlay in HD mode for cleaner textures
+            // Skip ambient overlay entirely in HD mode for cleaner Midjourney textures
             if (useHDLighting)
             {
-                Debug.Log("[DynamicLightingSystem] HD Mode: Minimal ambient overlay for crisp textures");
+                Debug.Log("[DynamicLightingSystem] HD Mode: Skipping ambient overlay for crisp textures");
+                return; // Actually skip it!
             }
 
             _ambientOverlay = new GameObject("AmbientOverlay");
@@ -84,15 +85,10 @@ namespace HauntedCastle.Visuals
             var tex = new Texture2D(size, size);
             tex.filterMode = FilterMode.Bilinear;
 
-            // Fill with ambient color (more subtle in HD mode)
-            Color overlayColor = useHDLighting
-                ? new Color(0.1f, 0.08f, 0.15f, 0.3f)  // Subtle purple tint for HD
-                : ambientColor;
-
             Color[] pixels = new Color[size * size];
             for (int i = 0; i < pixels.Length; i++)
             {
-                pixels[i] = overlayColor;
+                pixels[i] = ambientColor;
             }
             tex.SetPixels(pixels);
             tex.Apply();
@@ -101,9 +97,7 @@ namespace HauntedCastle.Visuals
             sr.sortingLayerName = "Lighting";
             sr.sortingOrder = 1000;
 
-            // Much lower intensity in HD mode
-            float intensity = useHDLighting ? 0.1f : ambientIntensity;
-            sr.color = new Color(1, 1, 1, intensity);
+            sr.color = new Color(1, 1, 1, ambientIntensity);
 
             // Scale to cover the room
             _ambientOverlay.transform.localScale = Vector3.one * 2f;

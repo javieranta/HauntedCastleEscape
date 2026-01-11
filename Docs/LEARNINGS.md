@@ -214,6 +214,131 @@ else
 
 ---
 
+## 9. Windows Reserved Filenames Cause Unity Import Loops
+
+**Problem:** Unity gets stuck in infinite import loop, console shows errors about importing files named `nul`, `con`, `com1`, `aux`, `prn`, etc.
+
+**Root Cause:** Windows has reserved device names that cannot be used as filenames. If a file with these names somehow gets created (often from cross-platform projects or bad asset imports), Unity will fail to import them repeatedly.
+
+**Reserved Windows filenames:**
+- `nul`, `con`, `prn`, `aux`
+- `com1` through `com9`
+- `lpt1` through `lpt9`
+
+**Solution:** Delete using Python with extended path syntax:
+
+```python
+import os
+
+# Extended path syntax bypasses Windows reserved name restrictions
+file_path = r"C:\path\to\project\Assets\nul"
+extended_path = "\\\\?\\" + file_path
+
+if os.path.exists(extended_path):
+    os.remove(extended_path)
+    print(f"Deleted: {extended_path}")
+```
+
+**Alternative:** Use command prompt with `del \\?\C:\path\to\nul`
+
+---
+
+## 10. Unity Caches Scene Files Aggressively
+
+**Problem:** After editing scene files externally (or via scripts), Unity still shows old content. Camera settings, GameObjects, etc. don't update.
+
+**Root Cause:** Unity keeps scenes loaded in memory and doesn't automatically detect external changes to .unity files.
+
+**Symptoms:**
+- Camera background color doesn't change despite editing scene file
+- GameObjects missing from hierarchy despite being in scene file
+- Old settings persist after file modifications
+
+**Solution:** Force Unity to reload from disk:
+
+```
+Method 1: Reopen Scene
+- File > Open Scene > Select the scene
+- Or double-click the scene in Project window
+- If asked to save, click "Don't Save" to discard cached version
+
+Method 2: Reimport
+- Right-click scene in Project window
+- Select "Reimport"
+
+Method 3: Nuclear Option
+- Close Unity completely
+- Delete Library/SceneCache folder (if exists)
+- Reopen project
+```
+
+**Prevention:** When making bulk external edits, close Unity first.
+
+---
+
+## 11. Incomplete .meta Files Break Asset Import
+
+**Problem:** Sprites/textures show as generic icons in Unity, don't import as sprites.
+
+**Root Cause:** The .meta file only has the header (fileFormatVersion and guid) but missing the TextureImporter section.
+
+**Symptoms:**
+- PNG files show as generic file icons, not sprite previews
+- Resources.Load returns null for sprites
+- Console may show import warnings
+
+**Solution:** Ensure .meta files have complete TextureImporter:
+
+```yaml
+fileFormatVersion: 2
+guid: <unique-guid-here>
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 12
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    # ... full settings ...
+  textureType: 8          # 8 = Sprite
+  spriteMode: 1           # 1 = Single
+  spritePixelsToUnits: 256
+  # ... platform settings ...
+```
+
+**Key settings for sprites:**
+- `textureType: 8` (Sprite type)
+- `spriteMode: 1` (Single sprite)
+- `isReadable: 1` (if you need to read pixels)
+- `textureCompression: 0` (none) or `1` (low quality)
+
+---
+
+## 12. EditorBuildSettings Scene GUIDs Must Match
+
+**Problem:** Scenes don't load, or wrong scenes load. Build settings show scenes but they don't work.
+
+**Root Cause:** `ProjectSettings/EditorBuildSettings.asset` contains GUIDs for each scene. If these don't match the actual scene .meta file GUIDs, Unity can't find the scenes.
+
+**Solution:** Get correct GUIDs from scene .meta files:
+
+```bash
+# Check scene GUID
+cat Assets/Scenes/MyScene.unity.meta | grep guid
+# Output: guid: 3d3b5006b5f83d34f8addb96c3214a0b
+```
+
+Then update EditorBuildSettings.asset:
+```yaml
+m_Scenes:
+- enabled: 1
+  path: Assets/Scenes/MyScene.unity
+  guid: 3d3b5006b5f83d34f8addb96c3214a0b  # Must match .meta file!
+```
+
+---
+
 ## Quick Reference: Common Freeze Causes
 
 | Symptom | Likely Cause | Solution |
@@ -223,6 +348,16 @@ else
 | Freeze on spawn | Runtime texture creation | Cache textures/sprites |
 | Freeze with physics | NaN/Infinity in velocity | Validate before applying |
 | Freeze on division | Division by zero | Guard with `if (x > 0)` |
+
+## Quick Reference: Unity Import Issues
+
+| Symptom | Likely Cause | Solution |
+|---------|--------------|----------|
+| Infinite import loop | Windows reserved filename | Delete with `\\?\` path |
+| Scene not updating | Unity cache | Reopen scene from disk |
+| Sprites show as icons | Incomplete .meta file | Add full TextureImporter |
+| Scenes won't load | Wrong GUIDs in BuildSettings | Match GUIDs from .meta |
+| Blue screen in Game view | No camera rendering | Open correct scene, press Play |
 
 ---
 

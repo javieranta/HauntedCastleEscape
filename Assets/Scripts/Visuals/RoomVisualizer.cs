@@ -295,17 +295,29 @@ namespace HauntedCastle.Visuals
             doorObj.transform.localPosition = position;
 
             var sr = doorObj.AddComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
+            Sprite doorSprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
+            sr.sprite = doorSprite;
             sr.sortingLayerName = "Walls";
-            sr.sortingOrder = 3; // Behind walls but above floor
+            sr.sortingOrder = 10; // In front of walls (walls are 5)
             sr.color = Color.white;
 
-            // Use tiled mode for proper sizing
-            sr.drawMode = SpriteDrawMode.Tiled;
-            sr.tileMode = SpriteTileMode.Continuous;
-            sr.size = size;
+            // Use Simple mode with scale (NOT tiled - door sprites are not tileable)
+            sr.drawMode = SpriteDrawMode.Simple;
 
-            Debug.Log($"[RoomVisualizer] Created door: {name} at {position} with size {size}");
+            // Scale the door to fit the gap
+            if (doorSprite != null && doorSprite.bounds.size.x > 0 && doorSprite.bounds.size.y > 0)
+            {
+                float scaleX = size.x / doorSprite.bounds.size.x;
+                float scaleY = size.y / doorSprite.bounds.size.y;
+                doorObj.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+                Debug.Log($"[RoomVisualizer] Door sprite bounds: {doorSprite.bounds.size}, Scale: ({scaleX}, {scaleY})");
+            }
+            else
+            {
+                Debug.LogWarning($"[RoomVisualizer] Door sprite has invalid bounds or is null!");
+            }
+
+            Debug.Log($"[RoomVisualizer] Created door: {name} at {position} with size {size}, sprite: {doorSprite?.name ?? "NULL"}");
         }
 
         private void CreateWallSegment(GameObject parent, Sprite wallSprite, float startX, float y,

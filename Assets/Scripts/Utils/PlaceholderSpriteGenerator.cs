@@ -137,8 +137,42 @@ namespace HauntedCastle.Utils
 
         // ==================== Character Sprites ====================
 
+        // Cache for loaded Midjourney character sprites
+        private static Dictionary<string, Sprite> _cachedCharacterSprites = new Dictionary<string, Sprite>();
+
         public static Sprite GetWizardSprite()
         {
+            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
+            if (_cachedCharacterSprites.TryGetValue("wizard", out Sprite cached) && cached != null)
+                return cached;
+
+            string[] wizardPaths = new[] {
+                "Sprites/Characters/Wizard/wizard_idle",
+                "Sprites/Characters/wizard_idle",
+                "Sprites/Characters/wizard"
+            };
+
+            foreach (string path in wizardPaths)
+            {
+                Sprite imported = Resources.Load<Sprite>(path);
+                if (imported != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded wizard sprite from {path}");
+                    _cachedCharacterSprites["wizard"] = imported;
+                    return imported;
+                }
+
+                Texture2D tex = Resources.Load<Texture2D>(path);
+                if (tex != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded wizard as Texture2D: {path}");
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
+                    _cachedCharacterSprites["wizard"] = sprite;
+                    return sprite;
+                }
+            }
+
+            // PRIORITY 2: Procedural fallbacks
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetWizardSprite(); }
@@ -164,6 +198,48 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetKnightSprite()
         {
+            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
+            if (_cachedCharacterSprites.TryGetValue("knight", out Sprite cached) && cached != null)
+            {
+                Debug.Log($"[PlaceholderSpriteGenerator] Returning cached knight sprite: {cached.name}");
+                return cached;
+            }
+
+            Debug.Log("[PlaceholderSpriteGenerator] Loading knight sprite...");
+
+            string[] knightPaths = new[] {
+                "Sprites/Characters/Knight/knight_idle",
+                "Sprites/Characters/knight_idle",
+                "Sprites/Characters/knight"
+            };
+
+            foreach (string path in knightPaths)
+            {
+                Debug.Log($"[PlaceholderSpriteGenerator] Trying path: {path}");
+
+                Sprite imported = Resources.Load<Sprite>(path);
+                if (imported != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded knight sprite from {path}, size: {imported.texture.width}x{imported.texture.height}");
+                    _cachedCharacterSprites["knight"] = imported;
+                    return imported;
+                }
+
+                Texture2D tex = Resources.Load<Texture2D>(path);
+                if (tex != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded knight as Texture2D: {path}, size: {tex.width}x{tex.height}");
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
+                    _cachedCharacterSprites["knight"] = sprite;
+                    return sprite;
+                }
+
+                Debug.LogWarning($"[PlaceholderSpriteGenerator] Could not load knight from: {path}");
+            }
+
+            Debug.LogError("[PlaceholderSpriteGenerator] NO Midjourney knight sprites found! Using procedural fallback.");
+
+            // PRIORITY 2: Procedural fallbacks
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetKnightSprite(); }
@@ -189,6 +265,37 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetSerfSprite()
         {
+            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
+            if (_cachedCharacterSprites.TryGetValue("serf", out Sprite cached) && cached != null)
+                return cached;
+
+            string[] serfPaths = new[] {
+                "Sprites/Characters/Serf/serf_idle",
+                "Sprites/Characters/serf_idle",
+                "Sprites/Characters/serf"
+            };
+
+            foreach (string path in serfPaths)
+            {
+                Sprite imported = Resources.Load<Sprite>(path);
+                if (imported != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded serf sprite from {path}");
+                    _cachedCharacterSprites["serf"] = imported;
+                    return imported;
+                }
+
+                Texture2D tex = Resources.Load<Texture2D>(path);
+                if (tex != null)
+                {
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded serf as Texture2D: {path}");
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
+                    _cachedCharacterSprites["serf"] = sprite;
+                    return sprite;
+                }
+            }
+
+            // PRIORITY 2: Procedural fallbacks
             if (_useUltraHDSprites)
             {
                 try { return UltraHDSpriteGenerator.GetSerfSprite(); }
@@ -605,24 +712,26 @@ namespace HauntedCastle.Utils
         // ==================== Environment Sprites ====================
 
         // Cache for loaded Midjourney sprites
-        private static Sprite _cachedFloorSprite;
-        private static Sprite _cachedWallSprite;
-        private static bool _floorSpriteChecked = false;
-        private static bool _wallSpriteChecked = false;
+        // Per-floor sprite caches
+        private static Dictionary<int, Sprite> _cachedFloorSprites = new Dictionary<int, Sprite>();
+        private static Dictionary<int, Sprite> _cachedWallSprites = new Dictionary<int, Sprite>();
 
         public static Sprite GetFloorTileSprite(int floorLevel, int variation = 0)
         {
-            // Return cached sprite if already loaded
-            if (_floorSpriteChecked && _cachedFloorSprite != null)
+            // Return cached sprite if already loaded for this floor
+            if (_cachedFloorSprites.TryGetValue(floorLevel, out Sprite cached) && cached != null)
             {
-                return _cachedFloorSprite;
+                return cached;
             }
 
-            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
-            string[] floorPaths = new string[]
+            // PRIORITY 1: Floor-specific Midjourney sprites
+            // Floor 0 = Dungeon/Basement, Floor 1 = Castle, Floor 2 = Tower
+            string[] floorPaths = floorLevel switch
             {
-                "Sprites/Environment/Floors/stone_floor",
-                "Sprites/Environment/Floors/wood_floor"
+                0 => new[] { "Sprites/Environment/Floors/dungeon_floor", "Sprites/Environment/Floors/stone_floor" },
+                1 => new[] { "Sprites/Environment/Floors/stone_floor", "Sprites/Environment/Floors/wood_floor" },
+                2 => new[] { "Sprites/Environment/Floors/tower_floor", "Sprites/Environment/Floors/stone_floor" },
+                _ => new[] { "Sprites/Environment/Floors/stone_floor", "Sprites/Environment/Floors/wood_floor" }
             };
 
             foreach (string path in floorPaths)
@@ -631,14 +740,9 @@ namespace HauntedCastle.Utils
                 Sprite imported = Resources.Load<Sprite>(path);
                 if (imported != null)
                 {
-                    // Log detailed texture info
-                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded floor sprite from {path}");
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded floor sprite for level {floorLevel} from {path}");
                     Debug.Log($"  -> Texture: {imported.texture.name}, Size: {imported.texture.width}x{imported.texture.height}");
-                    Debug.Log($"  -> Sprite: {imported.name}, Rect: {imported.rect}, PPU: {imported.pixelsPerUnit}");
-                    Debug.Log($"  -> FilterMode: {imported.texture.filterMode}, Format: {imported.texture.format}");
-                    // Don't override filter mode - use import settings
-                    _cachedFloorSprite = imported;
-                    _floorSpriteChecked = true;
+                    _cachedFloorSprites[floorLevel] = imported;
                     return imported;
                 }
 
@@ -646,20 +750,14 @@ namespace HauntedCastle.Utils
                 Texture2D tex = Resources.Load<Texture2D>(path);
                 if (tex != null)
                 {
-                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded as Texture2D, converting to Sprite: {path}");
-                    Debug.Log($"  -> Texture: {tex.name}, Size: {tex.width}x{tex.height}, Format: {tex.format}");
-                    // Don't override filter mode
-                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-                    _cachedFloorSprite = sprite;
-                    _floorSpriteChecked = true;
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded floor as Texture2D for level {floorLevel}: {path}");
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
+                    _cachedFloorSprites[floorLevel] = sprite;
                     return sprite;
                 }
-
-                Debug.LogWarning($"[PlaceholderSpriteGenerator] Could not load: {path}");
             }
 
-            Debug.LogError("[PlaceholderSpriteGenerator] NO Midjourney floor sprites found! Using procedural fallback.");
-            _floorSpriteChecked = true;
+            Debug.LogWarning($"[PlaceholderSpriteGenerator] No floor sprites found for level {floorLevel}, using procedural fallback.");
 
             // PRIORITY 2: HD Smooth procedural sprites (512x512)
             try { return Visuals.HDSmoothSpriteGenerator.GetStoneFloorTile(variation + floorLevel * 10); }
@@ -692,18 +790,20 @@ namespace HauntedCastle.Utils
 
         public static Sprite GetWallSprite(int floorLevel, bool isVertical = false)
         {
-            // Return cached sprite if already loaded
-            if (_wallSpriteChecked && _cachedWallSprite != null)
+            // Return cached sprite if already loaded for this floor
+            if (_cachedWallSprites.TryGetValue(floorLevel, out Sprite cached) && cached != null)
             {
-                return _cachedWallSprite;
+                return cached;
             }
 
-            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
-            string[] wallPaths = new string[]
+            // PRIORITY 1: Floor-specific Midjourney sprites
+            // Floor 0 = Dungeon (dungeon_wall), Floor 1 = Castle (stone_wall), Floor 2 = Tower (brick_wall)
+            string[] wallPaths = floorLevel switch
             {
-                "Sprites/Environment/Walls/stone_wall",
-                "Sprites/Environment/Walls/wall_stone",
-                "Sprites/Environment/Walls/wall"
+                0 => new[] { "Sprites/Environment/Walls/dungeon_wall", "Sprites/Environment/Walls/stone_wall" },
+                1 => new[] { "Sprites/Environment/Walls/stone_wall", "Sprites/Environment/Walls/brick_wall" },
+                2 => new[] { "Sprites/Environment/Walls/brick_wall", "Sprites/Environment/Walls/stone_wall" },
+                _ => new[] { "Sprites/Environment/Walls/stone_wall", "Sprites/Environment/Walls/dungeon_wall" }
             };
 
             foreach (string path in wallPaths)
@@ -712,14 +812,9 @@ namespace HauntedCastle.Utils
                 Sprite imported = Resources.Load<Sprite>(path);
                 if (imported != null)
                 {
-                    // Log detailed texture info
-                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded wall sprite from {path}");
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded wall sprite for level {floorLevel} from {path}");
                     Debug.Log($"  -> Texture: {imported.texture.name}, Size: {imported.texture.width}x{imported.texture.height}");
-                    Debug.Log($"  -> Sprite: {imported.name}, Rect: {imported.rect}, PPU: {imported.pixelsPerUnit}");
-                    Debug.Log($"  -> FilterMode: {imported.texture.filterMode}, Format: {imported.texture.format}");
-                    // Don't override filter mode - use import settings
-                    _cachedWallSprite = imported;
-                    _wallSpriteChecked = true;
+                    _cachedWallSprites[floorLevel] = imported;
                     return imported;
                 }
 
@@ -727,20 +822,14 @@ namespace HauntedCastle.Utils
                 Texture2D tex = Resources.Load<Texture2D>(path);
                 if (tex != null)
                 {
-                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded wall as Texture2D, converting to Sprite: {path}");
-                    Debug.Log($"  -> Texture: {tex.name}, Size: {tex.width}x{tex.height}, Format: {tex.format}");
-                    // Don't override filter mode
-                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-                    _cachedWallSprite = sprite;
-                    _wallSpriteChecked = true;
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded wall as Texture2D for level {floorLevel}: {path}");
+                    Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
+                    _cachedWallSprites[floorLevel] = sprite;
                     return sprite;
                 }
-
-                Debug.LogWarning($"[PlaceholderSpriteGenerator] Could not load wall: {path}");
             }
 
-            Debug.LogError("[PlaceholderSpriteGenerator] NO Midjourney wall sprites found! Using procedural fallback.");
-            _wallSpriteChecked = true;
+            Debug.LogWarning($"[PlaceholderSpriteGenerator] No wall sprites found for level {floorLevel}, using procedural fallback.");
 
             // PRIORITY 2: HD Smooth procedural sprites (512x512)
             try { return Visuals.HDSmoothSpriteGenerator.GetStoneBrickWall(floorLevel); }
@@ -771,9 +860,21 @@ namespace HauntedCastle.Utils
             return GetSquareSprite($"Wall_{floorLevel}_{isVertical}", wallColor, 32);
         }
 
-        // Cache for loaded Midjourney door sprite
-        private static Sprite _cachedDoorSprite;
-        private static bool _doorSpriteChecked = false;
+        // Per-door-type sprite caches (wooden, iron, secret)
+        private static Dictionary<string, Sprite> _cachedDoorSprites = new Dictionary<string, Sprite>();
+
+        /// <summary>
+        /// Clears all sprite caches. Call this when sprites are updated.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void ClearAllCaches()
+        {
+            _cachedFloorSprites.Clear();
+            _cachedWallSprites.Clear();
+            _cachedDoorSprites.Clear();
+            _cachedCharacterSprites.Clear();
+            Debug.Log("[PlaceholderSpriteGenerator] Cleared all sprite caches (floors, walls, doors, characters)");
+        }
 
         public static Sprite GetDoorSprite(bool isOpen, string keyType = "")
         {
@@ -783,18 +884,26 @@ namespace HauntedCastle.Utils
                 return GetSquareSprite("Door_Open", new Color(0.08f, 0.06f, 0.04f, 0.5f), 32);
             }
 
-            // Return cached sprite if already loaded
-            if (_doorSpriteChecked && _cachedDoorSprite != null)
+            // Determine door type from keyType (wooden = default, iron = locked, secret = hidden)
+            string doorType = keyType.ToLower() switch
             {
-                return _cachedDoorSprite;
+                "iron" or "locked" or "red" or "blue" or "green" or "yellow" => "iron",
+                "secret" or "hidden" or "passage" => "secret",
+                _ => "wooden"
+            };
+
+            // Return cached sprite if already loaded for this door type
+            if (_cachedDoorSprites.TryGetValue(doorType, out Sprite cached) && cached != null)
+            {
+                return cached;
             }
 
-            // PRIORITY 1: User-imported Midjourney sprites (BEST QUALITY)
-            string[] doorPaths = new string[]
+            // PRIORITY 1: Door type-specific Midjourney sprites
+            string[] doorPaths = doorType switch
             {
-                "Sprites/Environment/Doors/wooden_door",
-                "Sprites/Environment/Doors/door",
-                "Sprites/Environment/Doors/castle_door"
+                "iron" => new[] { "Sprites/Environment/Doors/iron_door", "Sprites/Environment/Doors/wooden_door" },
+                "secret" => new[] { "Sprites/Environment/Doors/secret_door", "Sprites/Environment/Doors/wooden_door" },
+                _ => new[] { "Sprites/Environment/Doors/wooden_door", "Sprites/Environment/Doors/door", "Sprites/Environment/Doors/castle_door" }
             };
 
             foreach (string path in doorPaths)
@@ -803,10 +912,9 @@ namespace HauntedCastle.Utils
                 Sprite imported = Resources.Load<Sprite>(path);
                 if (imported != null)
                 {
-                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded door sprite from {path}");
+                    Debug.Log($"[PlaceholderSpriteGenerator] SUCCESS: Loaded {doorType} door sprite from {path}");
                     Debug.Log($"  -> Texture: {imported.texture.name}, Size: {imported.texture.width}x{imported.texture.height}");
-                    _cachedDoorSprite = imported;
-                    _doorSpriteChecked = true;
+                    _cachedDoorSprites[doorType] = imported;
                     return imported;
                 }
 
@@ -814,16 +922,14 @@ namespace HauntedCastle.Utils
                 Texture2D tex = Resources.Load<Texture2D>(path);
                 if (tex != null)
                 {
-                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded door as Texture2D, converting to Sprite: {path}");
+                    Debug.Log($"[PlaceholderSpriteGenerator] Loaded {doorType} door as Texture2D: {path}");
                     Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f);
-                    _cachedDoorSprite = sprite;
-                    _doorSpriteChecked = true;
+                    _cachedDoorSprites[doorType] = sprite;
                     return sprite;
                 }
             }
 
-            Debug.LogWarning("[PlaceholderSpriteGenerator] No Midjourney door sprite found, using procedural fallback");
-            _doorSpriteChecked = true;
+            Debug.LogWarning($"[PlaceholderSpriteGenerator] No Midjourney {doorType} door sprite found, using procedural fallback");
 
             // PRIORITY 2: HD Smooth sprites (procedural fallback)
             try { return Visuals.HDSmoothSpriteGenerator.GetDoorSprite(isOpen); }

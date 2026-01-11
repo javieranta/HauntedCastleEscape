@@ -70,3 +70,6 @@ TagManager:
   - name: UI
     uniqueID: 7
     locked: 0
+  - name: Lighting
+    uniqueID: 8
+    locked: 0

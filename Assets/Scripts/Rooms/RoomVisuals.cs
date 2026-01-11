@@ -253,24 +253,9 @@ namespace HauntedCastle.Rooms
 
         private void CreateDoorway(string name, Vector2 position, bool isVertical, Color color)
         {
-            // Create a door sprite in the doorway
-            var doorObj = new GameObject(name);
-            doorObj.transform.SetParent(transform);
-            doorObj.transform.localPosition = position;
-
-            var sr = doorObj.AddComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
-            sr.sortingLayerName = "Walls";
-            sr.sortingOrder = 3; // Behind walls but above floor
-            sr.color = Color.white;
-
-            // Use tiled mode for proper sizing
-            sr.drawMode = SpriteDrawMode.Tiled;
-            sr.tileMode = SpriteTileMode.Continuous;
-
-            // Size based on orientation
-            Vector2 doorSize = isVertical ? new Vector2(wallThickness, doorWidth) : new Vector2(doorWidth, wallThickness);
-            sr.size = doorSize;
+            // NOTE: Door sprites are created by RoomVisualizer singleton - don't duplicate them here!
+            // This method is kept for backwards compatibility but does nothing.
+            // The RoomVisualizer.CreateDoorOpening() method handles all door sprite rendering.
         }
 
         private void CreateCorner(string name, Vector2 position, Color color)

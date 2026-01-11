@@ -530,7 +530,7 @@ namespace HauntedCastle.Data
         {
             return floor switch
             {
-                0 => new Color(0.4f, 0.35f, 0.45f),   // Basement - dark purple tint
+                0 => new Color(0.75f, 0.68f, 0.8f),   // Basement - lighter purple tint for better visibility
                 1 => new Color(0.9f, 0.85f, 0.75f),   // Castle - warm golden
                 2 => new Color(0.7f, 0.8f, 0.95f),    // Tower - cool sky blue
                 _ => Color.white
