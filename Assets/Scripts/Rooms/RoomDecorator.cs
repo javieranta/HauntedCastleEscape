@@ -316,20 +316,22 @@ namespace HauntedCastle.Rooms
             {
                 // Left or right wall - position ON the wall (at the edge, not inside room)
                 float x = _rng.Next(0, 2) == 0 ? -roomWidth / 2 + 0.3f : roomWidth / 2 - 0.3f;
-                // Avoid center area where doors are - place in top or bottom third only
+                // Place in a narrow band: away from door (center) but not in corners
+                // Range: y = +2 to +3 (top) or y = -2 to -3 (bottom)
                 bool topHalf = _rng.Next(0, 2) == 0;
                 float y = topHalf
-                    ? (float)(_rng.NextDouble() * (roomHeight / 3f) + roomHeight / 6f)      // Top third: +1.67 to +5
-                    : (float)(-_rng.NextDouble() * (roomHeight / 3f) - roomHeight / 6f);   // Bottom third: -1.67 to -5
+                    ? 2f + (float)(_rng.NextDouble() * 1.5f)    // Top band: +2 to +3.5
+                    : -2f - (float)(_rng.NextDouble() * 1.5f);  // Bottom band: -2 to -3.5
                 return new Vector2(x, y);
             }
             else
             {
-                // Top or bottom wall - avoid center area where doors are
+                // Top or bottom wall - avoid center area where doors are, but not corners
+                // Range: x = +3 to +5 (right) or x = -3 to -5 (left)
                 bool leftHalf = _rng.Next(0, 2) == 0;
                 float x = leftHalf
-                    ? (float)(-_rng.NextDouble() * (roomWidth / 3f) - roomWidth / 6f)      // Left third
-                    : (float)(_rng.NextDouble() * (roomWidth / 3f) + roomWidth / 6f);      // Right third
+                    ? -3f - (float)(_rng.NextDouble() * 2f)     // Left band: -3 to -5
+                    : 3f + (float)(_rng.NextDouble() * 2f);     // Right band: +3 to +5
                 float y = _rng.Next(0, 2) == 0 ? roomHeight / 2 - 0.3f : -roomHeight / 2 + 0.3f;
                 return new Vector2(x, y);
             }
