@@ -174,7 +174,13 @@ namespace HauntedCastle.Services
 
             // Tower Center - Entry from castle
             var f2Center = CreateRoomData("room_f2_center", "Upper Hall", 2);
-            f2Center.stairsDown = CreateFloorTransition("room_center");
+            // Stairs back down to castle - on RIGHT side (matching where you came from)
+            f2Center.stairsDown = new FloorTransition
+            {
+                exists = true,
+                destinationRoomId = "room_center",
+                position = new Vector2(5f, 2f)  // Right side, same as castle's stairsUp
+            };
             f2Center.northDoor = CreateDoor("room_f2_north");
             f2Center.southDoor = CreateDoor("room_f2_south");
             f2Center.eastDoor = CreateDoor("room_f2_east");
@@ -311,7 +317,13 @@ namespace HauntedCastle.Services
 
             // Dungeon Center - Entry from castle stairs
             var dungeonCenter = CreateRoomData("room_dungeon_center", "Dungeon Entrance", 0);
-            dungeonCenter.stairsUp = CreateFloorTransition("room_center");
+            // Stairs back up to castle - on LEFT side (matching where you came from)
+            dungeonCenter.stairsUp = new FloorTransition
+            {
+                exists = true,
+                destinationRoomId = "room_center",
+                position = new Vector2(-5f, 2f)  // Left side, same as castle's stairsDown
+            };
             dungeonCenter.northDoor = CreateDoor("room_dungeon_north");
             dungeonCenter.southDoor = CreateDoor("room_dungeon_south");
             dungeonCenter.eastDoor = CreateDoor("room_dungeon_east");
