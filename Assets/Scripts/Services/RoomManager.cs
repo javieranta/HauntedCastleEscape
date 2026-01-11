@@ -188,7 +188,21 @@ namespace HauntedCastle.Services
         /// </summary>
         public void TransitionThroughFloor(FloorTransitionType transitionType)
         {
-            if (CurrentRoomData == null || _isTransitioning) return;
+            Debug.LogWarning($"[FLOOR TRANSITION] TransitionThroughFloor called with type: {transitionType}");
+            Debug.LogWarning($"[FLOOR TRANSITION] CurrentRoomData: {(CurrentRoomData != null ? CurrentRoomData.roomId : "NULL")}");
+            Debug.LogWarning($"[FLOOR TRANSITION] _isTransitioning: {_isTransitioning}");
+
+            if (CurrentRoomData == null)
+            {
+                Debug.LogError($"[FLOOR TRANSITION] FAILED: CurrentRoomData is NULL!");
+                return;
+            }
+
+            if (_isTransitioning)
+            {
+                Debug.LogWarning($"[FLOOR TRANSITION] BLOCKED: Already transitioning!");
+                return;
+            }
 
             FloorTransition transition = transitionType switch
             {
@@ -198,7 +212,24 @@ namespace HauntedCastle.Services
                 _ => null
             };
 
-            if (transition == null || !transition.exists) return;
+            Debug.LogWarning($"[FLOOR TRANSITION] Transition object: {(transition != null ? "EXISTS" : "NULL")}");
+            if (transition != null)
+            {
+                Debug.LogWarning($"[FLOOR TRANSITION] Transition.exists: {transition.exists}");
+                Debug.LogWarning($"[FLOOR TRANSITION] Transition.destinationRoomId: {transition.destinationRoomId}");
+            }
+
+            if (transition == null)
+            {
+                Debug.LogError($"[FLOOR TRANSITION] FAILED: No {transitionType} defined for room {CurrentRoomData.roomId}!");
+                return;
+            }
+
+            if (!transition.exists)
+            {
+                Debug.LogError($"[FLOOR TRANSITION] FAILED: {transitionType} exists=false for room {CurrentRoomData.roomId}!");
+                return;
+            }
 
             string spawnId = transitionType switch
             {
@@ -208,8 +239,14 @@ namespace HauntedCastle.Services
                 _ => "center"
             };
 
+            Debug.LogWarning($"[FLOOR TRANSITION] *** INITIATING TRANSITION ***");
+            Debug.LogWarning($"[FLOOR TRANSITION] From: {CurrentRoomData.roomId} -> To: {transition.destinationRoomId}");
+            Debug.LogWarning($"[FLOOR TRANSITION] SpawnId: {spawnId}");
+
             OnRoomTransition?.Invoke(CurrentRoomData.roomId, transition.destinationRoomId);
             LoadRoom(transition.destinationRoomId, spawnId);
+
+            Debug.LogWarning($"[FLOOR TRANSITION] LoadRoom call completed");
         }
 
         /// <summary>
@@ -229,47 +266,196 @@ namespace HauntedCastle.Services
             _transitionStartTime = Time.unscaledTime;
             _pendingSpawnId = spawnPointId;
 
+            Debug.LogWarning($"[RoomManager] ============ STARTING ROOM TRANSITION ============");
+            Debug.LogWarning($"[RoomManager] Loading room: {roomData.roomId} ({roomData.displayName}) on floor {roomData.floorNumber}");
+
             OnRoomLoadStarted?.Invoke(roomData);
 
             // Fade out
             if (TransitionManager.Instance != null)
             {
+                Debug.Log("[RoomManager] Fading out...");
                 yield return TransitionManager.Instance.FadeOut(transitionDuration);
             }
 
-            // Unload current room
-            UnloadCurrentRoom();
-
-            // Store previous room
-            if (CurrentRoomData != null)
+            // CRITICAL: Wrap room building in try-finally to ensure fade clears even on error
+            bool buildSuccess = false;
+            try
             {
-                PreviousRoomId = CurrentRoomData.roomId;
+                // Unload current room
+                Debug.Log("[RoomManager] Unloading current room...");
+                UnloadCurrentRoom();
+
+                // Store previous room
+                if (CurrentRoomData != null)
+                {
+                    PreviousRoomId = CurrentRoomData.roomId;
+                }
+
+                // Set new room data
+                CurrentRoomData = roomData;
+
+                // Build new room
+                Debug.Log("[RoomManager] Building new room...");
+                CurrentRoom = BuildRoom(roomData);
+                Debug.Log($"[RoomManager] Room built: {CurrentRoom?.name ?? "NULL"}");
+
+                // Determine spawn position
+                _pendingSpawnPosition = GetSpawnPosition(roomData, spawnPointId);
+                Debug.Log($"[RoomManager] Spawn position: {_pendingSpawnPosition}");
+
+                // Notify listeners (player will reposition)
+                OnRoomLoadCompleted?.Invoke(roomData);
+
+                // CRITICAL: Snap camera to room center to ensure visibility
+                SnapCameraToRoom();
+
+                buildSuccess = true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[RoomManager] ERROR during room building: {e.Message}\n{e.StackTrace}");
             }
 
-            // Set new room data
-            CurrentRoomData = roomData;
-
-            // Build new room
-            CurrentRoom = BuildRoom(roomData);
-
-            // Determine spawn position
-            _pendingSpawnPosition = GetSpawnPosition(roomData, spawnPointId);
-
-            // Notify listeners (player will reposition)
-            OnRoomLoadCompleted?.Invoke(roomData);
-
-            // Fade in
+            // ALWAYS fade in, even if there was an error
             if (TransitionManager.Instance != null)
             {
+                Debug.Log("[RoomManager] Fading in...");
                 yield return TransitionManager.Instance.FadeIn(transitionDuration);
+            }
+            else
+            {
+                Debug.LogWarning("[RoomManager] No TransitionManager - can't fade in!");
             }
 
             _isTransitioning = false;
 
             // Play room enter sound
-            AudioManager.Instance?.PlaySFX(SoundEffect.DoorOpen);
+            if (buildSuccess)
+            {
+                AudioManager.Instance?.PlaySFX(SoundEffect.DoorOpen);
+            }
 
-            Debug.Log($"[RoomManager] Loaded room: {roomData.roomId} (Floor {roomData.floorNumber})");
+            Debug.LogWarning($"[RoomManager] ============ ROOM LOADED ============");
+            Debug.LogWarning($"[RoomManager] Room ID: {roomData.roomId}");
+            Debug.LogWarning($"[RoomManager] Room Name: {roomData.displayName}");
+            Debug.LogWarning($"[RoomManager] Floor Number: {roomData.floorNumber}");
+            Debug.LogWarning($"[RoomManager] Room position: {CurrentRoom?.transform.position}");
+            Debug.LogWarning($"[RoomManager] Camera position: {Camera.main?.transform.position}");
+            Debug.LogWarning($"[RoomManager] Build success: {buildSuccess}");
+            Debug.LogWarning($"[RoomManager] ========================================");
+
+            // Run diagnostics AFTER fade completes
+            RunPostTransitionDiagnostics();
+
+            // SAFETY: Start a delayed check to ensure fade cleared
+            // This catches edge cases where the fade-in coroutine might have been interrupted
+            StartCoroutine(DelayedFadeCheck());
+        }
+
+        /// <summary>
+        /// Safety check that runs 1 second after transition to ensure fade is cleared.
+        /// </summary>
+        private IEnumerator DelayedFadeCheck()
+        {
+            yield return new WaitForSecondsRealtime(1.0f);
+
+            if (TransitionManager.Instance != null)
+            {
+                float fadeAlpha = TransitionManager.Instance.CurrentFadeAlpha;
+                if (fadeAlpha > 0.05f)
+                {
+                    Debug.LogError($"[RoomManager] SAFETY: Fade still at {fadeAlpha} after 1 second! Force clearing...");
+                    TransitionManager.Instance.ForceTransparent();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Runs diagnostics after room transition is complete (after fade in).
+        /// </summary>
+        private void RunPostTransitionDiagnostics()
+        {
+            Debug.LogWarning("=================================================================");
+            Debug.LogWarning("[POST-TRANSITION] ========== POST-TRANSITION CHECK ==========");
+
+            // Check fade state - should be 0 now
+            if (TransitionManager.Instance != null)
+            {
+                float fadeAlpha = TransitionManager.Instance.CurrentFadeAlpha;
+                Debug.LogWarning($"[POST-TRANSITION] Fade Alpha: {fadeAlpha}");
+
+                if (fadeAlpha > 0.1f)
+                {
+                    Debug.LogError($"[POST-TRANSITION] FADE IS STILL VISIBLE! Alpha = {fadeAlpha}. This is likely the cause of darkness!");
+                    Debug.LogError($"[POST-TRANSITION] Force-clearing fade...");
+                    TransitionManager.Instance.ForceTransparent();
+                }
+                else
+                {
+                    Debug.LogWarning($"[POST-TRANSITION] Fade is properly cleared (alpha = {fadeAlpha})");
+                }
+            }
+
+            // Check camera
+            if (Camera.main != null)
+            {
+                Debug.LogWarning($"[POST-TRANSITION] Camera at: {Camera.main.transform.position}");
+                Debug.LogWarning($"[POST-TRANSITION] Camera orthoSize: {Camera.main.orthographicSize}");
+            }
+
+            // Check room
+            if (CurrentRoom != null)
+            {
+                Debug.LogWarning($"[POST-TRANSITION] Room at: {CurrentRoom.transform.position}");
+
+                // Find all SpriteRenderers in the room
+                var renderers = CurrentRoom.GetComponentsInChildren<SpriteRenderer>();
+                Debug.LogWarning($"[POST-TRANSITION] Found {renderers.Length} SpriteRenderers in room");
+
+                int visibleCount = 0;
+                foreach (var sr in renderers)
+                {
+                    if (sr.enabled && sr.color.a > 0 && sr.sprite != null)
+                    {
+                        visibleCount++;
+                    }
+                }
+                Debug.LogWarning($"[POST-TRANSITION] {visibleCount} of {renderers.Length} renderers are potentially visible");
+
+                if (visibleCount == 0)
+                {
+                    Debug.LogError("[POST-TRANSITION] NO VISIBLE SPRITES IN ROOM! This is likely the cause of darkness!");
+                }
+
+                // Log details of first few renderers for debugging
+                int count = 0;
+                foreach (var sr in renderers)
+                {
+                    if (count >= 5) break;
+                    Debug.LogWarning($"[POST-TRANSITION] Renderer: {sr.gameObject.name} | enabled={sr.enabled} | sprite={(sr.sprite != null ? sr.sprite.name : "NULL")} | color={sr.color} | layer={sr.sortingLayerName}/{sr.sortingOrder} | pos={sr.transform.position}");
+                    count++;
+                }
+            }
+
+            // Check if sorting layers exist
+            Debug.LogWarning($"[POST-TRANSITION] Checking sorting layers...");
+            try
+            {
+                // Try to access common layers used by the game
+                string[] layersToCheck = { "Background", "Walls", "Items", "Enemies", "Player", "Projectiles", "UI" };
+                foreach (var layer in layersToCheck)
+                {
+                    int layerId = SortingLayer.NameToID(layer);
+                    Debug.LogWarning($"[POST-TRANSITION] Layer '{layer}' -> ID: {layerId} (0 = Default/not found)");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[POST-TRANSITION] Error checking sorting layers: {e.Message}");
+            }
+
+            Debug.LogWarning("=================================================================");
         }
 
         private void UnloadCurrentRoom()
@@ -287,6 +473,184 @@ namespace HauntedCastle.Services
                 {
                     Destroy(child.gameObject);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Snaps the camera to the current room's center position.
+        /// This ensures the room is always visible after a transition.
+        /// </summary>
+        private void SnapCameraToRoom()
+        {
+            if (Camera.main == null)
+            {
+                Debug.LogWarning("[RoomManager] No main camera found for snapping!");
+                return;
+            }
+
+            Vector3 targetPos;
+
+            // If we have a current room, snap to its center
+            if (CurrentRoom != null)
+            {
+                targetPos = CurrentRoom.transform.position;
+            }
+            // If room container exists, snap to its position (should be 0,0,0)
+            else if (roomContainer != null)
+            {
+                targetPos = roomContainer.position;
+            }
+            // Fallback to origin
+            else
+            {
+                targetPos = Vector3.zero;
+            }
+
+            // Preserve camera's Z position (usually -10 for 2D games)
+            float cameraZ = Camera.main.transform.position.z;
+            Camera.main.transform.position = new Vector3(targetPos.x, targetPos.y, cameraZ);
+
+            Debug.Log($"[RoomManager] Camera snapped to: {Camera.main.transform.position}");
+
+            // Run comprehensive diagnostics
+            RunVisibilityDiagnostics();
+        }
+
+        /// <summary>
+        /// DIAGNOSTIC: Comprehensive check for why room might not be visible.
+        /// Creates a guaranteed visible test object and logs all relevant state.
+        /// </summary>
+        private void RunVisibilityDiagnostics()
+        {
+            Debug.LogWarning("=================================================================");
+            Debug.LogWarning("[DIAGNOSTIC] ========== VISIBILITY DIAGNOSTICS ==========");
+            Debug.LogWarning("=================================================================");
+
+            // 1. Camera state
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                Debug.LogWarning($"[DIAGNOSTIC] Camera.main found: {cam.name}");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera position: {cam.transform.position}");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera orthographic: {cam.orthographic}");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera orthographicSize: {cam.orthographicSize}");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera nearClipPlane: {cam.nearClipPlane}");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera farClipPlane: {cam.farClipPlane}");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera cullingMask: {cam.cullingMask} (binary: {System.Convert.ToString(cam.cullingMask, 2)})");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera enabled: {cam.enabled}");
+                Debug.LogWarning($"[DIAGNOSTIC] Camera gameObject active: {cam.gameObject.activeInHierarchy}");
+            }
+            else
+            {
+                Debug.LogError("[DIAGNOSTIC] Camera.main is NULL!");
+            }
+
+            // 2. Room Container state
+            if (roomContainer != null)
+            {
+                Debug.LogWarning($"[DIAGNOSTIC] RoomContainer position: {roomContainer.position}");
+                Debug.LogWarning($"[DIAGNOSTIC] RoomContainer localPosition: {roomContainer.localPosition}");
+                Debug.LogWarning($"[DIAGNOSTIC] RoomContainer childCount: {roomContainer.childCount}");
+                Debug.LogWarning($"[DIAGNOSTIC] RoomContainer active: {roomContainer.gameObject.activeInHierarchy}");
+            }
+            else
+            {
+                Debug.LogError("[DIAGNOSTIC] RoomContainer is NULL!");
+            }
+
+            // 3. Current Room state
+            if (CurrentRoom != null)
+            {
+                Debug.LogWarning($"[DIAGNOSTIC] CurrentRoom: {CurrentRoom.name}");
+                Debug.LogWarning($"[DIAGNOSTIC] CurrentRoom position: {CurrentRoom.transform.position}");
+                Debug.LogWarning($"[DIAGNOSTIC] CurrentRoom localPosition: {CurrentRoom.transform.localPosition}");
+                Debug.LogWarning($"[DIAGNOSTIC] CurrentRoom active: {CurrentRoom.gameObject.activeInHierarchy}");
+                Debug.LogWarning($"[DIAGNOSTIC] CurrentRoom childCount: {CurrentRoom.transform.childCount}");
+
+                // List all children
+                for (int i = 0; i < CurrentRoom.transform.childCount; i++)
+                {
+                    var child = CurrentRoom.transform.GetChild(i);
+                    Debug.LogWarning($"[DIAGNOSTIC]   Child {i}: {child.name} at {child.position}");
+                }
+            }
+            else
+            {
+                Debug.LogError("[DIAGNOSTIC] CurrentRoom is NULL!");
+            }
+
+            // 4. TransitionManager fade state
+            if (TransitionManager.Instance != null)
+            {
+                Debug.LogWarning($"[DIAGNOSTIC] TransitionManager exists");
+                Debug.LogWarning($"[DIAGNOSTIC] TransitionManager.IsFading: {TransitionManager.Instance.IsFading}");
+                Debug.LogWarning($"[DIAGNOSTIC] TransitionManager.CurrentFadeAlpha: {TransitionManager.Instance.CurrentFadeAlpha}");
+                // Note: Fade SHOULD be at 1.0 here since we're mid-transition. Will check again after fade completes.
+            }
+            else
+            {
+                Debug.LogError("[DIAGNOSTIC] TransitionManager.Instance is NULL!");
+            }
+
+            // 5. Create GUARANTEED VISIBLE test object at world origin
+            CreateDiagnosticMarker();
+
+            Debug.LogWarning("=================================================================");
+            Debug.LogWarning("[DIAGNOSTIC] ========== END DIAGNOSTICS ==========");
+            Debug.LogWarning("=================================================================");
+        }
+
+        /// <summary>
+        /// Creates a bright, impossible-to-miss marker at world origin.
+        /// If you can't see this, the problem is camera or rendering related.
+        /// </summary>
+        private void CreateDiagnosticMarker()
+        {
+            // Destroy any existing diagnostic marker
+            var existing = GameObject.Find("DIAGNOSTIC_MARKER");
+            if (existing != null) Destroy(existing);
+
+            // Create new marker at WORLD ORIGIN (0, 0, 0)
+            var marker = new GameObject("DIAGNOSTIC_MARKER");
+            marker.transform.position = Vector3.zero; // World origin
+
+            var sr = marker.AddComponent<SpriteRenderer>();
+
+            // Create a simple white square texture
+            var tex = new Texture2D(32, 32);
+            var pixels = new Color[32 * 32];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = Color.white;
+            }
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, 32, 32), new Vector2(0.5f, 0.5f), 32f);
+            sr.color = Color.magenta; // BRIGHT MAGENTA - impossible to miss
+            sr.sortingLayerName = "UI"; // Highest layer
+            sr.sortingOrder = 10000; // On top of everything
+            marker.transform.localScale = new Vector3(5f, 5f, 1f); // BIG
+
+            Debug.LogWarning($"[DIAGNOSTIC] Created MAGENTA diagnostic marker at world origin (0,0,0)");
+            Debug.LogWarning($"[DIAGNOSTIC] If you can see a MAGENTA square, camera is working.");
+            Debug.LogWarning($"[DIAGNOSTIC] If you CANNOT see it, check: camera position, culling mask, or something covering the view.");
+
+            // Also create a marker at the room's expected position
+            if (CurrentRoom != null)
+            {
+                var roomMarker = new GameObject("DIAGNOSTIC_ROOM_MARKER");
+                roomMarker.transform.position = CurrentRoom.transform.position + new Vector3(2, 2, 0);
+                roomMarker.transform.SetParent(CurrentRoom.transform);
+
+                var sr2 = roomMarker.AddComponent<SpriteRenderer>();
+                sr2.sprite = sr.sprite;
+                sr2.color = Color.cyan; // CYAN marker at room position
+                sr2.sortingLayerName = "UI";
+                sr2.sortingOrder = 10001;
+                roomMarker.transform.localScale = new Vector3(3f, 3f, 1f);
+
+                Debug.LogWarning($"[DIAGNOSTIC] Created CYAN marker at room position + offset: {roomMarker.transform.position}");
             }
         }
 

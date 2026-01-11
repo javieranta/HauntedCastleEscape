@@ -716,11 +716,29 @@ namespace HauntedCastle.Utils
         private static Dictionary<int, Sprite> _cachedFloorSprites = new Dictionary<int, Sprite>();
         private static Dictionary<int, Sprite> _cachedWallSprites = new Dictionary<int, Sprite>();
 
+        /// <summary>
+        /// Clears all sprite caches. Call this if you need to force reload sprites.
+        /// Also called automatically on domain reload (play mode enter).
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void ClearAllCaches()
+        {
+            _spriteCache.Clear();
+            _cachedFloorSprites.Clear();
+            _cachedWallSprites.Clear();
+            _cachedCharacterSprites.Clear();
+            _cachedDoorSprites.Clear();
+            Debug.Log("[PlaceholderSpriteGenerator] All sprite caches cleared (floors, walls, doors, characters)!");
+        }
+
         public static Sprite GetFloorTileSprite(int floorLevel, int variation = 0)
         {
+            Debug.Log($"[PlaceholderSpriteGenerator] GetFloorTileSprite called for level {floorLevel}");
+
             // Return cached sprite if already loaded for this floor
             if (_cachedFloorSprites.TryGetValue(floorLevel, out Sprite cached) && cached != null)
             {
+                Debug.Log($"[PlaceholderSpriteGenerator] Returning cached floor sprite for level {floorLevel}");
                 return cached;
             }
 
@@ -778,13 +796,15 @@ namespace HauntedCastle.Utils
                 try { return EnhancedSpriteGenerator.GetFloorTile(floorLevel, variation); }
                 catch { /* Fall back to simple shape */ }
             }
+            // Make fallback floors EXTREMELY bright - if you still see dark, the problem is elsewhere!
             Color floorColor = floorLevel switch
             {
-                0 => new Color(0.25f, 0.22f, 0.2f),  // Basement
-                1 => new Color(0.45f, 0.35f, 0.25f), // Castle
-                2 => new Color(0.5f, 0.48f, 0.45f),  // Tower
-                _ => new Color(0.4f, 0.35f, 0.3f)
+                0 => new Color(0.85f, 0.75f, 0.88f),  // Basement - VERY bright purple
+                1 => new Color(0.88f, 0.82f, 0.72f), // Castle - VERY bright tan
+                2 => new Color(0.90f, 0.88f, 0.85f),  // Tower - VERY bright gray
+                _ => new Color(0.85f, 0.80f, 0.75f)
             };
+            Debug.LogError($"[PlaceholderSpriteGenerator] *** USING ULTIMATE FALLBACK *** Floor level {floorLevel} - Color: R={floorColor.r:F2} G={floorColor.g:F2} B={floorColor.b:F2}");
             return GetSquareSprite($"Floor_{floorLevel}_{variation}", floorColor, 32);
         }
 
@@ -863,18 +883,8 @@ namespace HauntedCastle.Utils
         // Per-door-type sprite caches (wooden, iron, secret)
         private static Dictionary<string, Sprite> _cachedDoorSprites = new Dictionary<string, Sprite>();
 
-        /// <summary>
-        /// Clears all sprite caches. Call this when sprites are updated.
-        /// </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        public static void ClearAllCaches()
-        {
-            _cachedFloorSprites.Clear();
-            _cachedWallSprites.Clear();
-            _cachedDoorSprites.Clear();
-            _cachedCharacterSprites.Clear();
-            Debug.Log("[PlaceholderSpriteGenerator] Cleared all sprite caches (floors, walls, doors, characters)");
-        }
+        // NOTE: ClearAllCaches is defined above (around line 722).
+        // This duplicate was removed to fix compilation error.
 
         public static Sprite GetDoorSprite(bool isOpen, string keyType = "")
         {

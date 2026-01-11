@@ -34,12 +34,12 @@ namespace HauntedCastle.Visuals
             public static readonly Color SerfSkin = new Color(0.9f, 0.75f, 0.6f);
             public static readonly Color SerfHair = new Color(0.4f, 0.25f, 0.15f);
 
-            // Floor themes
-            public static readonly Color BasementStone = new Color(0.25f, 0.22f, 0.2f);
-            public static readonly Color BasementStoneDark = new Color(0.15f, 0.12f, 0.1f);
-            public static readonly Color BasementStoneLight = new Color(0.35f, 0.32f, 0.3f);
-            public static readonly Color BasementMoss = new Color(0.2f, 0.35f, 0.15f);
-            public static readonly Color BasementWater = new Color(0.15f, 0.25f, 0.35f);
+            // Floor themes - BRIGHTENED for visibility
+            public static readonly Color BasementStone = new Color(0.48f, 0.42f, 0.45f);
+            public static readonly Color BasementStoneDark = new Color(0.38f, 0.32f, 0.35f);
+            public static readonly Color BasementStoneLight = new Color(0.58f, 0.52f, 0.55f);
+            public static readonly Color BasementMoss = new Color(0.35f, 0.48f, 0.32f);
+            public static readonly Color BasementWater = new Color(0.30f, 0.42f, 0.52f);
 
             public static readonly Color CastleFloor = new Color(0.45f, 0.35f, 0.25f);
             public static readonly Color CastleFloorDark = new Color(0.3f, 0.22f, 0.15f);

@@ -177,5 +177,20 @@ namespace HauntedCastle.Services
         }
 
         public bool IsFading => _isFading;
+
+        /// <summary>
+        /// Gets the current fade alpha for diagnostics.
+        /// </summary>
+        public float CurrentFadeAlpha => fadeImage != null ? fadeImage.color.a : 0f;
+
+        /// <summary>
+        /// Forces the fade to be fully transparent. Use for debugging stuck fades.
+        /// </summary>
+        public void ForceTransparent()
+        {
+            SetFadeAlpha(0f);
+            _isFading = false;
+            Debug.LogWarning("[TransitionManager] FORCE cleared fade to transparent!");
+        }
     }
 }

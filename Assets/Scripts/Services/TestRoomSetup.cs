@@ -58,17 +58,35 @@ namespace HauntedCastle.Services
 
             var rooms = new List<RoomData>();
 
-            // Center room (starting room) - Safe zone, no enemies
-            var centerRoom = CreateRoomData("room_center", "Grand Hall", 0, true, false);
+            // FLOOR NUMBERING:
+            // Floor 0 = Basement/Dungeon (dark, dangerous) - RED test marker
+            // Floor 1 = Castle Main Floor (starting area) - GREEN test marker
+            // Floor 2 = Tower/Upper Floor - BLUE test marker
+
+            // Center room (starting room) - Safe zone, no enemies - FLOOR 1 (CASTLE)
+            var centerRoom = CreateRoomData("room_center", "Grand Hall", 1, true, false);
             centerRoom.northDoor = CreateDoor("room_north");
             centerRoom.southDoor = CreateDoor("room_south");
             centerRoom.eastDoor = CreateDoor("room_east");
             centerRoom.westDoor = CreateDoor("room_west");
-            centerRoom.stairsUp = CreateFloorTransition("room_f1_center");
+            // Stairs UP to tower - positioned on the RIGHT side of room
+            centerRoom.stairsUp = new FloorTransition
+            {
+                exists = true,
+                destinationRoomId = "room_f2_center",
+                position = new Vector2(5f, 2f)  // Right side
+            };
+            // Stairs DOWN to basement - positioned on the LEFT side of room
+            centerRoom.stairsDown = new FloorTransition
+            {
+                exists = true,
+                destinationRoomId = "room_dungeon_1",
+                position = new Vector2(-5f, 2f)  // Left side
+            };
             rooms.Add(centerRoom);
 
-            // North room - Bats patrol here
-            var northRoom = CreateRoomData("room_north", "Trophy Room", 0);
+            // North room - Bats patrol here - FLOOR 1 (CASTLE)
+            var northRoom = CreateRoomData("room_north", "Trophy Room", 1);
             northRoom.southDoor = CreateDoor("room_center");
             northRoom.eastDoor = CreateDoor("room_northeast");
             northRoom.westDoor = CreateDoor("room_northwest");
@@ -76,16 +94,16 @@ namespace HauntedCastle.Services
             northRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Bat, new Vector2(3f, -1f)));
             rooms.Add(northRoom);
 
-            // South room - Exit area, light security
-            var southRoom = CreateRoomData("room_south", "Entrance Hall", 0, false, true);
+            // South room - Exit area, light security - FLOOR 1 (CASTLE)
+            var southRoom = CreateRoomData("room_south", "Entrance Hall", 1, false, true);
             southRoom.northDoor = CreateDoor("room_center");
             southRoom.eastDoor = CreateDoor("room_southeast");
             southRoom.westDoor = CreateDoor("room_southwest");
             southRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Ghost, new Vector2(0f, 2f), 0.5f));
             rooms.Add(southRoom);
 
-            // East room - Armory has skeleton guards
-            var eastRoom = CreateRoomData("room_east", "Armory", 0);
+            // East room - Armory has skeleton guards - FLOOR 1 (CASTLE)
+            var eastRoom = CreateRoomData("room_east", "Armory", 1);
             eastRoom.westDoor = CreateDoor("room_center");
             eastRoom.northDoor = CreateDoor("room_northeast");
             eastRoom.southDoor = CreateDoor("room_southeast");
@@ -95,8 +113,8 @@ namespace HauntedCastle.Services
             eastRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Skeleton, new Vector2(-2f, 2f), 0.6f));
             rooms.Add(eastRoom);
 
-            // West room - Library haunted by ghosts
-            var westRoom = CreateRoomData("room_west", "Library", 0);
+            // West room - Library haunted by ghosts - FLOOR 1 (CASTLE)
+            var westRoom = CreateRoomData("room_west", "Library", 1);
             westRoom.eastDoor = CreateDoor("room_center");
             westRoom.northDoor = CreateDoor("room_northwest");
             westRoom.southDoor = CreateDoor("room_southwest");
@@ -106,15 +124,15 @@ namespace HauntedCastle.Services
             westRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Ghost, new Vector2(2f, -1f), 0.5f));
             rooms.Add(westRoom);
 
-            // Corner rooms
-            var neRoom = CreateRoomData("room_northeast", "Tower Base", 0);
+            // Corner rooms - FLOOR 1 (CASTLE)
+            var neRoom = CreateRoomData("room_northeast", "Tower Base", 1);
             neRoom.southDoor = CreateDoor("room_east");
             neRoom.westDoor = CreateDoor("room_north");
             // Tower has a witch!
             neRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Witch, new Vector2(0f, 0f), 0.7f));
             rooms.Add(neRoom);
 
-            var nwRoom = CreateRoomData("room_northwest", "Clock Room", 0);
+            var nwRoom = CreateRoomData("room_northwest", "Clock Room", 1);
             nwRoom.southDoor = CreateDoor("room_west");
             nwRoom.eastDoor = CreateDoor("room_north");
             // Add clock passage (Knight only)
@@ -123,19 +141,19 @@ namespace HauntedCastle.Services
             nwRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Mummy, new Vector2(-2f, 0f)));
             rooms.Add(nwRoom);
 
-            var seRoom = CreateRoomData("room_southeast", "Wine Cellar", 0);
+            var seRoom = CreateRoomData("room_southeast", "Wine Cellar", 1);
             seRoom.northDoor = CreateDoor("room_east");
             seRoom.westDoor = CreateDoor("room_south");
             // Add barrel passage (Serf only)
             seRoom.secretPassages.Add(CreateSecretPassage(SecretPassageType.Barrel, "room_hidden_tunnel", new Vector2(4f, -2f)));
-            seRoom.trapdoor = CreateFloorTransition("room_dungeon_1");
+            seRoom.trapdoor = CreateFloorTransition("room_dungeon_2"); // Trapdoor to basement
             // Spiders infest the cellar
             seRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(2f, 1f)));
             seRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(-1f, -2f)));
             seRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(3f, -1f), 0.4f));
             rooms.Add(seRoom);
 
-            var swRoom = CreateRoomData("room_southwest", "Kitchen", 0);
+            var swRoom = CreateRoomData("room_southwest", "Kitchen", 1);
             swRoom.northDoor = CreateDoor("room_west");
             swRoom.eastDoor = CreateDoor("room_south");
             // Add food spawn
@@ -145,27 +163,27 @@ namespace HauntedCastle.Services
             swRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(-3f, 0f), 0.5f));
             rooms.Add(swRoom);
 
-            // Floor 1 room (accessible via stairs from center)
-            var f1Center = CreateRoomData("room_f1_center", "Upper Hall", 1);
-            f1Center.stairsDown = CreateFloorTransition("room_center");
-            f1Center.northDoor = CreateDoor("room_f1_north");
+            // Floor 2 room - TOWER (accessible via stairs from center)
+            var f2Center = CreateRoomData("room_f2_center", "Upper Hall", 2);
+            f2Center.stairsDown = CreateFloorTransition("room_center");
+            f2Center.northDoor = CreateDoor("room_f2_north");
             // Demons guard the upper floor
-            f1Center.enemySpawns.Add(CreateEnemySpawn(EnemyType.Demon, new Vector2(2f, 1f), 0.6f));
-            f1Center.enemySpawns.Add(CreateEnemySpawn(EnemyType.Bat, new Vector2(-3f, 2f)));
-            rooms.Add(f1Center);
+            f2Center.enemySpawns.Add(CreateEnemySpawn(EnemyType.Demon, new Vector2(2f, 1f), 0.6f));
+            f2Center.enemySpawns.Add(CreateEnemySpawn(EnemyType.Bat, new Vector2(-3f, 2f)));
+            rooms.Add(f2Center);
 
-            var f1North = CreateRoomData("room_f1_north", "Throne Room", 1);
-            f1North.southDoor = CreateDoor("room_f1_center");
+            var f2North = CreateRoomData("room_f2_north", "Throne Room", 2);
+            f2North.southDoor = CreateDoor("room_f2_center");
             // Key piece location!
-            f1North.itemSpawns.Add(CreateItemSpawn("keypiece_0", new Vector2(0f, 2f), true));
+            f2North.itemSpawns.Add(CreateItemSpawn("keypiece_0", new Vector2(0f, 2f), true));
             // SPECIAL ENEMY: Dracula guards the throne room!
-            f1North.enemySpawns.Add(CreateEnemySpawn(EnemyType.Vampire, new Vector2(0f, 0f), 0.8f));
+            f2North.enemySpawns.Add(CreateEnemySpawn(EnemyType.Vampire, new Vector2(0f, 0f), 0.8f));
             // Add Cross item to counter Dracula
-            f1North.itemSpawns.Add(CreateItemSpawn("special_cross", new Vector2(4f, -1f)));
-            rooms.Add(f1North);
+            f2North.itemSpawns.Add(CreateItemSpawn("special_cross", new Vector2(4f, -1f)));
+            rooms.Add(f2North);
 
-            // Hidden rooms
-            var hiddenStudy = CreateRoomData("room_hidden_study", "Secret Study", 0);
+            // Hidden rooms - FLOOR 1 (CASTLE - accessible from castle rooms)
+            var hiddenStudy = CreateRoomData("room_hidden_study", "Secret Study", 1);
             hiddenStudy.secretPassages.Add(CreateSecretPassage(SecretPassageType.Bookcase, "room_west", new Vector2(5f, 0f)));
             hiddenStudy.itemSpawns.Add(CreateItemSpawn("keypiece_1", new Vector2(0f, 0f), true));
             // SPECIAL ENEMY: Frankenstein's Monster guards the study!
@@ -174,7 +192,7 @@ namespace HauntedCastle.Services
             hiddenStudy.itemSpawns.Add(CreateItemSpawn("special_spellbook", new Vector2(-3f, 1f)));
             rooms.Add(hiddenStudy);
 
-            var hiddenVault = CreateRoomData("room_hidden_vault", "Hidden Vault", 0);
+            var hiddenVault = CreateRoomData("room_hidden_vault", "Hidden Vault", 1);
             hiddenVault.secretPassages.Add(CreateSecretPassage(SecretPassageType.Clock, "room_northwest", new Vector2(4f, -2f)));
             hiddenVault.itemSpawns.Add(CreateItemSpawn("treasure_crown", new Vector2(0f, 0f)));
             // Skeletons guard the vault
@@ -182,7 +200,7 @@ namespace HauntedCastle.Services
             hiddenVault.enemySpawns.Add(CreateEnemySpawn(EnemyType.Skeleton, new Vector2(2f, 0f)));
             rooms.Add(hiddenVault);
 
-            var hiddenTunnel = CreateRoomData("room_hidden_tunnel", "Secret Tunnel", 0);
+            var hiddenTunnel = CreateRoomData("room_hidden_tunnel", "Secret Tunnel", 0); // In basement!
             hiddenTunnel.secretPassages.Add(CreateSecretPassage(SecretPassageType.Barrel, "room_southeast", new Vector2(-4f, 2f)));
             hiddenTunnel.itemSpawns.Add(CreateItemSpawn("keypiece_2", new Vector2(0f, 0f), true));
             // SPECIAL ENEMY: Hunchback prowls the tunnel!
@@ -191,8 +209,9 @@ namespace HauntedCastle.Services
             hiddenTunnel.itemSpawns.Add(CreateItemSpawn("special_wreath", new Vector2(3f, 0f)));
             rooms.Add(hiddenTunnel);
 
-            // Dungeon room - dangerous! (Floor 0 = Basement/Dungeon level)
-            var dungeon1 = CreateRoomData("room_dungeon_1", "Dungeon Cell", 0);
+            // Dungeon room 1 - FLOOR 0 (BASEMENT) - accessible via stairs from center
+            var dungeon1 = CreateRoomData("room_dungeon_1", "Dungeon Entrance", 0);
+            dungeon1.stairsUp = CreateFloorTransition("room_center"); // Stairs back up
             dungeon1.trapdoor = CreateFloorTransition("room_southeast"); // Can go back up
             dungeon1.itemSpawns.Add(CreateItemSpawn("key_red", new Vector2(0f, 0f)));
             // Add hazards
@@ -214,10 +233,28 @@ namespace HauntedCastle.Services
             dungeon1.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(-2f, -1f)));
             dungeon1.enemySpawns.Add(CreateEnemySpawn(EnemyType.Ghost, new Vector2(3f, 1f)));
             dungeon1.enemySpawns.Add(CreateEnemySpawn(EnemyType.Bat, new Vector2(0f, 2f)));
+            dungeon1.eastDoor = CreateDoor("room_dungeon_2"); // Connect to dungeon 2
             rooms.Add(dungeon1);
 
-            // Secret east room (behind red door) - Treasure well guarded
-            var eastSecret = CreateRoomData("room_east_secret", "Treasure Chamber", 0);
+            // Dungeon room 2 - FLOOR 0 (BASEMENT) - accessible via trapdoor from wine cellar
+            var dungeon2 = CreateRoomData("room_dungeon_2", "Dungeon Cell", 0);
+            dungeon2.trapdoor = CreateFloorTransition("room_southeast"); // Trapdoor back up
+            dungeon2.westDoor = CreateDoor("room_dungeon_1"); // Connect to dungeon 1
+            // More dungeon hazards
+            dungeon2.hazardSpawns.Add(new HazardSpawn
+            {
+                hazardType = HazardType.Acid,
+                position = new Vector2(0f, 0f),
+                size = new Vector2(2f, 2f),
+                damagePerSecond = 12f
+            });
+            dungeon2.enemySpawns.Add(CreateEnemySpawn(EnemyType.Skeleton, new Vector2(-2f, 1f)));
+            dungeon2.enemySpawns.Add(CreateEnemySpawn(EnemyType.Skeleton, new Vector2(2f, 1f)));
+            dungeon2.itemSpawns.Add(CreateItemSpawn("food_chicken", new Vector2(3f, -2f))); // Emergency food
+            rooms.Add(dungeon2);
+
+            // Secret east room (behind red door) - Treasure well guarded - FLOOR 1 (accessed from castle armory)
+            var eastSecret = CreateRoomData("room_east_secret", "Treasure Chamber", 1);
             eastSecret.westDoor = CreateLockedDoor("room_east", KeyColor.Red);
             eastSecret.itemSpawns.Add(CreateItemSpawn("treasure_chalice", new Vector2(0f, 0f)));
             // Demon guards the treasure!

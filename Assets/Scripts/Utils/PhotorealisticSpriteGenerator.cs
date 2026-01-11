@@ -388,11 +388,11 @@ namespace HauntedCastle.Utils
 
             switch (floorLevel)
             {
-                case 0: // Basement - dark stone/dungeon
-                    baseColor = new Color(0.25f, 0.22f, 0.2f);
-                    lightColor = new Color(0.35f, 0.32f, 0.28f);
-                    darkColor = new Color(0.15f, 0.12f, 0.1f);
-                    groutColor = new Color(0.1f, 0.08f, 0.06f);
+                case 0: // Basement - dungeon stone BRIGHTENED for visibility
+                    baseColor = new Color(0.48f, 0.42f, 0.45f);
+                    lightColor = new Color(0.60f, 0.55f, 0.55f);
+                    darkColor = new Color(0.38f, 0.32f, 0.35f);
+                    groutColor = new Color(0.28f, 0.24f, 0.26f);
                     break;
                 case 1: // Castle - polished stone/wood
                     baseColor = new Color(0.55f, 0.45f, 0.35f);
@@ -429,11 +429,11 @@ namespace HauntedCastle.Utils
 
             switch (floorLevel)
             {
-                case 0: // Basement - rough dark stone
-                    baseColor = new Color(0.28f, 0.25f, 0.22f);
-                    lightColor = new Color(0.38f, 0.35f, 0.3f);
-                    darkColor = new Color(0.18f, 0.15f, 0.12f);
-                    mortarColor = new Color(0.12f, 0.1f, 0.08f);
+                case 0: // Basement - rough stone BRIGHTENED for visibility
+                    baseColor = new Color(0.48f, 0.42f, 0.42f);
+                    lightColor = new Color(0.58f, 0.52f, 0.50f);
+                    darkColor = new Color(0.38f, 0.32f, 0.32f);
+                    mortarColor = new Color(0.28f, 0.24f, 0.24f);
                     break;
                 case 1: // Castle - dressed stone
                     baseColor = new Color(0.5f, 0.45f, 0.4f);

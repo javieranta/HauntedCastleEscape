@@ -31,7 +31,25 @@ namespace HauntedCastle.Rooms
         {
             _roomData = roomData;
             _floorLevel = roomData?.floorNumber ?? 1;
-            GenerateVisuals();
+
+            // DIAGNOSTIC: Log exactly what room and floor we're initializing
+            Debug.LogWarning($"[RoomVisuals] ========== INITIALIZING ROOM ==========");
+            Debug.LogWarning($"[RoomVisuals] Room ID: {roomData?.roomId ?? "NULL"}");
+            Debug.LogWarning($"[RoomVisuals] Room Name: {roomData?.displayName ?? "NULL"}");
+            Debug.LogWarning($"[RoomVisuals] Floor Number from RoomData: {roomData?.floorNumber}");
+            Debug.LogWarning($"[RoomVisuals] _floorLevel set to: {_floorLevel}");
+            Debug.LogWarning($"[RoomVisuals] This transform position: {transform.position}");
+            Debug.LogWarning($"[RoomVisuals] =======================================");
+
+            try
+            {
+                GenerateVisuals();
+                Debug.LogWarning($"[RoomVisuals] *** GenerateVisuals completed successfully for {roomData?.roomId} ***");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[RoomVisuals] *** ERROR in GenerateVisuals for {roomData?.roomId}: {e.Message}\n{e.StackTrace}");
+            }
         }
 
         private void GenerateVisuals()
@@ -63,12 +81,16 @@ namespace HauntedCastle.Rooms
 
         private void CreateTiledFloor()
         {
+            Debug.LogWarning($"[RoomVisuals.CreateTiledFloor] Creating floor for level {_floorLevel}");
+
             var floorContainer = new GameObject("FloorTiles");
             floorContainer.transform.SetParent(transform);
             floorContainer.transform.localPosition = Vector3.zero;
 
             // Get the Midjourney floor sprite
+            Debug.LogWarning($"[RoomVisuals.CreateTiledFloor] Calling GetFloorTileSprite({_floorLevel}, 0)");
             Sprite floorSprite = PlaceholderSpriteGenerator.GetFloorTileSprite(_floorLevel, 0);
+            Debug.LogWarning($"[RoomVisuals.CreateTiledFloor] Got sprite: {floorSprite?.name ?? "NULL"}");
 
             // Create a SINGLE large floor that covers the room
             // The texture will tile naturally due to Wrap Mode = Repeat
@@ -87,13 +109,61 @@ namespace HauntedCastle.Rooms
             // Set the size to cover the room - texture will tile within this area
             sr.size = new Vector2(roomWidth, roomHeight);
 
-            Debug.Log($"[RoomVisuals] Created tiled floor: {roomWidth}x{roomHeight} using sprite {floorSprite?.name}");
+            // Detailed debug logging for floor visibility issues
+            Debug.Log($"[RoomVisuals] FLOOR CREATED for level {_floorLevel}:");
+            Debug.Log($"  -> Sprite: {floorSprite?.name ?? "NULL"}, Size: {roomWidth}x{roomHeight}");
+            Debug.Log($"  -> SpriteRenderer: drawMode={sr.drawMode}, size={sr.size}, layer={sr.sortingLayerName}/{sr.sortingOrder}");
+            Debug.Log($"  -> Floor position: {floor.transform.position}, parent: {floorContainer.transform.parent?.name}");
+            if (floorSprite != null && floorSprite.texture != null)
+            {
+                try
+                {
+                    Color[] pixels = floorSprite.texture.GetPixels(0, 0, 1, 1);
+                    if (pixels.Length > 0)
+                    {
+                        Debug.Log($"  -> Sample pixel color: R={pixels[0].r:F2} G={pixels[0].g:F2} B={pixels[0].b:F2}");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"  -> Could not read texture pixels: {ex.Message}");
+                }
+            }
+
+            // DIAGNOSTIC: Add test marker to ALL floors with floor-specific color
+            var testObj = new GameObject("FLOOR_TEST_MARKER");
+            testObj.transform.SetParent(floorContainer.transform);
+            testObj.transform.localPosition = Vector3.zero;
+            var testSR = testObj.AddComponent<SpriteRenderer>();
+
+            // Different colors per floor for easy identification
+            Color markerColor = _floorLevel switch
+            {
+                0 => Color.red,      // Basement - RED
+                1 => Color.green,    // Castle - GREEN
+                2 => Color.blue,     // Tower - BLUE
+                _ => Color.white
+            };
+            testSR.sprite = PlaceholderSpriteGenerator.GetSquareSprite($"FloorTest_{_floorLevel}", markerColor, 64);
+            testSR.sortingLayerName = "Background";
+            testSR.sortingOrder = -9; // Just above floor
+            testObj.transform.localScale = new Vector3(3f, 3f, 1f); // Even bigger for visibility
+
+            // Log room and camera positions for debugging
+            Vector3 roomWorldPos = transform.position;
+            Vector3 cameraPos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+            Debug.LogWarning($"[RoomVisuals] *** TEST MARKER CREATED for floor {_floorLevel} ***");
+            Debug.LogWarning($"  Room position: {roomWorldPos}");
+            Debug.LogWarning($"  Camera position: {cameraPos}");
+            Debug.LogWarning($"  Distance from camera: {Vector3.Distance(roomWorldPos, new Vector3(cameraPos.x, cameraPos.y, 0))}");
+            Debug.LogWarning($"  Marker color: {markerColor} - Look for this in the center of the room!");
         }
 
         private void CreateThemedWalls()
         {
             Color wallColor = GetFloorWallColor();
-            Color doorwayColor = new Color(0.08f, 0.06f, 0.04f);
+            // BRIGHTENED doorway color - was almost black (0.08, 0.06, 0.04)
+            Color doorwayColor = new Color(0.35f, 0.30f, 0.32f);
 
             // North wall
             CreateWall("WallNorth",
@@ -132,12 +202,13 @@ namespace HauntedCastle.Rooms
 
         private Color GetFloorWallColor()
         {
+            // BRIGHTENED for visibility - walls should be visible even in basement
             return _floorLevel switch
             {
-                0 => new Color(0.22f, 0.2f, 0.18f),   // Basement - dark stone
-                1 => new Color(0.38f, 0.35f, 0.32f),  // Castle - medium stone
-                2 => new Color(0.48f, 0.46f, 0.44f),  // Tower - lighter stone
-                _ => new Color(0.35f, 0.33f, 0.3f)
+                0 => new Color(0.50f, 0.45f, 0.48f),   // Basement - BRIGHTENED purple-gray
+                1 => new Color(0.55f, 0.50f, 0.45f),  // Castle - medium warm stone
+                2 => new Color(0.60f, 0.58f, 0.55f),  // Tower - lighter stone
+                _ => new Color(0.52f, 0.48f, 0.45f)
             };
         }
 
@@ -253,9 +324,36 @@ namespace HauntedCastle.Rooms
 
         private void CreateDoorway(string name, Vector2 position, bool isVertical, Color color)
         {
-            // NOTE: Door sprites are created by RoomVisualizer singleton - don't duplicate them here!
-            // This method is kept for backwards compatibility but does nothing.
-            // The RoomVisualizer.CreateDoorOpening() method handles all door sprite rendering.
+            // Create door sprite in the gap between wall segments
+            var doorObj = new GameObject(name);
+            doorObj.transform.SetParent(transform);
+            doorObj.transform.localPosition = position;
+
+            var sr = doorObj.AddComponent<SpriteRenderer>();
+
+            // Get door sprite
+            Sprite doorSprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
+            sr.sprite = doorSprite;
+            sr.sortingLayerName = "Walls";
+            sr.sortingOrder = 2; // In front of walls
+            sr.color = Color.white; // Keep Midjourney texture colors
+
+            // Size the door to fit the gap
+            Vector2 doorSize = isVertical
+                ? new Vector2(wallThickness * 1.5f, doorWidth)
+                : new Vector2(doorWidth, wallThickness * 1.5f);
+
+            // Use simple draw mode with scale for door sprites (they're not tileable)
+            sr.drawMode = SpriteDrawMode.Simple;
+
+            if (doorSprite != null && doorSprite.bounds.size.x > 0 && doorSprite.bounds.size.y > 0)
+            {
+                float scaleX = doorSize.x / doorSprite.bounds.size.x;
+                float scaleY = doorSize.y / doorSprite.bounds.size.y;
+                doorObj.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+            }
+
+            Debug.Log($"[RoomVisuals] Created door: {name} at {position}, isVertical: {isVertical}");
         }
 
         private void CreateCorner(string name, Vector2 position, Color color)

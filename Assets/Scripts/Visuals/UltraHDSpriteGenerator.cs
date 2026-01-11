@@ -754,12 +754,12 @@ namespace HauntedCastle.Visuals
 
             switch (floorLevel)
             {
-                case 0: // Basement - dark dungeon stone
-                    baseColor = new Color(0.22f, 0.2f, 0.18f);
-                    lightColor = new Color(0.32f, 0.28f, 0.25f);
-                    darkColor = new Color(0.12f, 0.1f, 0.08f);
-                    groutColor = new Color(0.08f, 0.06f, 0.05f);
-                    accentColor = new Color(0.15f, 0.22f, 0.12f); // Moss
+                case 0: // Basement - dungeon stone BRIGHTENED for visibility
+                    baseColor = new Color(0.48f, 0.42f, 0.45f);
+                    lightColor = new Color(0.62f, 0.55f, 0.58f);
+                    darkColor = new Color(0.38f, 0.32f, 0.35f);
+                    groutColor = new Color(0.28f, 0.24f, 0.26f);
+                    accentColor = new Color(0.35f, 0.45f, 0.32f); // Moss
                     break;
                 case 1: // Castle - elegant stone with carpet
                     baseColor = new Color(0.5f, 0.42f, 0.32f);
@@ -797,12 +797,12 @@ namespace HauntedCastle.Visuals
 
             switch (floorLevel)
             {
-                case 0: // Basement - rough stone with moss and chains
-                    baseColor = new Color(0.25f, 0.22f, 0.2f);
-                    lightColor = new Color(0.38f, 0.35f, 0.3f);
-                    darkColor = new Color(0.15f, 0.12f, 0.1f);
-                    mortarColor = new Color(0.1f, 0.08f, 0.06f);
-                    accentColor = new Color(0.18f, 0.28f, 0.15f); // Moss
+                case 0: // Basement - rough stone BRIGHTENED for visibility
+                    baseColor = new Color(0.45f, 0.40f, 0.42f);
+                    lightColor = new Color(0.58f, 0.52f, 0.55f);
+                    darkColor = new Color(0.35f, 0.30f, 0.32f);
+                    mortarColor = new Color(0.28f, 0.24f, 0.26f);
+                    accentColor = new Color(0.35f, 0.45f, 0.32f); // Moss
                     break;
                 case 1: // Castle - dressed stone with tapestries
                     baseColor = new Color(0.48f, 0.42f, 0.38f);

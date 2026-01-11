@@ -109,17 +109,17 @@ namespace HauntedCastle.Effects
 
         private void InitializeDefaults()
         {
-            // Basement - dark, dusty, cold (but still playable visibility)
+            // Basement - BRIGHT for debugging - NO vignette at all!
             basementAtmosphere = new FloorAtmosphere
             {
-                ambientColor = new Color(0.75f, 0.65f, 0.8f),   // Brighter purple tint for better visibility
-                fogColor = new Color(0.2f, 0.15f, 0.25f, 0.25f), // Lighter fog
-                fogDensity = 0.02f,
-                vignetteIntensity = 0.35f,  // Reduced vignette for better visibility
-                vignetteColor = new Color(0.15f, 0.1f, 0.2f),
-                enableDustParticles = true,
-                dustColor = new Color(0.6f, 0.5f, 0.7f, 0.3f),
-                particleRate = 6f
+                ambientColor = new Color(0.95f, 0.90f, 0.98f),   // VERY bright for visibility testing
+                fogColor = new Color(0.25f, 0.2f, 0.3f, 0.05f), // Minimal fog
+                fogDensity = 0.005f,
+                vignetteIntensity = 0f,  // DISABLED - no vignette for basement testing!
+                vignetteColor = new Color(0.5f, 0.5f, 0.5f),
+                enableDustParticles = false, // Disabled for testing
+                dustColor = new Color(0.7f, 0.6f, 0.8f, 0.25f),
+                particleRate = 2f
             };
 
             // Castle - warm, golden, elegant

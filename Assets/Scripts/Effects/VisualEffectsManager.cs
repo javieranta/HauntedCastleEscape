@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections;
-using TMPro;
+// TMPro REMOVED - was causing TMP Importer freeze when AddComponent<TextMeshPro>() at runtime
 
 namespace HauntedCastle.Effects
 {
@@ -108,15 +108,18 @@ namespace HauntedCastle.Effects
 
         private IEnumerator DamageNumberRoutine(Vector3 position, int damage, bool isCritical)
         {
+            // DISABLED: TextMeshPro AddComponent at runtime triggers TMP Importer and causes freeze
+            // Using simple sprite-based indicator instead
+
             var damageObj = new GameObject("DamageNumber");
             damageObj.transform.position = position + new Vector3(Random.Range(-0.3f, 0.3f), 0.5f, 0);
 
-            var tmp = damageObj.AddComponent<TextMeshPro>();
-            tmp.text = damage.ToString();
-            tmp.fontSize = isCritical ? 8f : 6f;
-            tmp.color = isCritical ? Color.yellow : hitFlashColor;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.sortingOrder = 1000;
+            // Use SpriteRenderer instead of TextMeshPro to avoid TMP Importer freeze
+            var sr = damageObj.AddComponent<SpriteRenderer>();
+            sr.sprite = GetCachedDamageSprite();
+            sr.sortingLayerName = "UI";
+            sr.sortingOrder = 1000;
+            sr.color = isCritical ? Color.yellow : hitFlashColor;
 
             float elapsed = 0f;
             Vector3 startPos = damageObj.transform.position;
@@ -131,10 +134,12 @@ namespace HauntedCastle.Effects
                 damageObj.transform.position = startPos + Vector3.up * (damageNumberRiseSpeed * t);
 
                 // Fade out
-                tmp.alpha = 1f - t;
+                Color c = sr.color;
+                c.a = 1f - t;
+                sr.color = c;
 
                 // Scale effect
-                float scale = isCritical ? 1.2f - (t * 0.4f) : 1f - (t * 0.3f);
+                float scale = isCritical ? 0.5f - (t * 0.2f) : 0.4f - (t * 0.15f);
                 damageObj.transform.localScale = Vector3.one * scale;
 
                 yield return null;
@@ -143,17 +148,48 @@ namespace HauntedCastle.Effects
             Destroy(damageObj);
         }
 
+        // Cache the damage indicator sprite
+        private static Sprite _cachedDamageSprite;
+
+        private Sprite GetCachedDamageSprite()
+        {
+            if (_cachedDamageSprite != null) return _cachedDamageSprite;
+
+            int size = 16;
+            var tex = new Texture2D(size, size);
+            tex.filterMode = FilterMode.Point;
+
+            // Create a simple burst/impact shape for damage indicator
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dist = Vector2.Distance(new Vector2(x, y), center);
+                    bool isVisible = dist < size / 2f - 1;
+                    tex.SetPixel(x, y, isVisible ? Color.white : Color.clear);
+                }
+            }
+
+            tex.Apply();
+            _cachedDamageSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+            return _cachedDamageSprite;
+        }
+
         private IEnumerator HealNumberRoutine(Vector3 position, int amount)
         {
+            // DISABLED: TextMeshPro AddComponent at runtime triggers TMP Importer and causes freeze
+            // Using simple sprite-based indicator instead
+
             var healObj = new GameObject("HealNumber");
             healObj.transform.position = position + new Vector3(0, 0.5f, 0);
 
-            var tmp = healObj.AddComponent<TextMeshPro>();
-            tmp.text = "+" + amount.ToString();
-            tmp.fontSize = 5f;
-            tmp.color = Color.green;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.sortingOrder = 1000;
+            // Use SpriteRenderer instead of TextMeshPro to avoid TMP Importer freeze
+            var sr = healObj.AddComponent<SpriteRenderer>();
+            sr.sprite = GetCachedHealSprite();
+            sr.sortingLayerName = "UI";
+            sr.sortingOrder = 1000;
+            sr.color = Color.green;
 
             float elapsed = 0f;
             Vector3 startPos = healObj.transform.position;
@@ -165,12 +201,42 @@ namespace HauntedCastle.Effects
                 float t = elapsed / damageNumberDuration;
 
                 healObj.transform.position = startPos + Vector3.up * (damageNumberRiseSpeed * 0.5f * t);
-                tmp.alpha = 1f - t;
+                Color c = sr.color;
+                c.a = 1f - t;
+                sr.color = c;
 
                 yield return null;
             }
 
             Destroy(healObj);
+        }
+
+        // Cache the heal indicator sprite
+        private static Sprite _cachedHealSprite;
+
+        private Sprite GetCachedHealSprite()
+        {
+            if (_cachedHealSprite != null) return _cachedHealSprite;
+
+            int size = 16;
+            var tex = new Texture2D(size, size);
+            tex.filterMode = FilterMode.Point;
+
+            // Create a simple plus/cross shape for heal indicator
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    bool isHorizontal = y >= 6 && y <= 9;
+                    bool isVertical = x >= 6 && x <= 9;
+                    bool isPlus = isHorizontal || isVertical;
+                    tex.SetPixel(x, y, isPlus ? Color.white : Color.clear);
+                }
+            }
+
+            tex.Apply();
+            _cachedHealSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+            return _cachedHealSprite;
         }
 
         private IEnumerator HitFlashRoutine(SpriteRenderer target)
@@ -284,15 +350,18 @@ namespace HauntedCastle.Effects
 
         private IEnumerator TextPopupRoutine(Vector3 position, string text, Color color)
         {
+            // DISABLED: TextMeshPro AddComponent at runtime triggers TMP Importer and causes freeze
+            // Using simple sprite-based indicator instead
+
             var popupObj = new GameObject("TextPopup");
             popupObj.transform.position = position + new Vector3(0, 0.8f, 0);
 
-            var tmp = popupObj.AddComponent<TextMeshPro>();
-            tmp.text = text;
-            tmp.fontSize = 4f;
-            tmp.color = color;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.sortingOrder = 1000;
+            // Use SpriteRenderer instead of TextMeshPro to avoid TMP Importer freeze
+            var sr = popupObj.AddComponent<SpriteRenderer>();
+            sr.sprite = GetCachedPopupSprite();
+            sr.sortingLayerName = "UI";
+            sr.sortingOrder = 1000;
+            sr.color = color;
 
             float elapsed = 0f;
             float duration = 1.5f;
@@ -305,12 +374,42 @@ namespace HauntedCastle.Effects
                 float t = elapsed / duration;
 
                 popupObj.transform.position = startPos + Vector3.up * (0.5f * t);
-                tmp.alpha = 1f - (t * t);
+                Color c = sr.color;
+                c.a = 1f - (t * t);
+                sr.color = c;
 
                 yield return null;
             }
 
             Destroy(popupObj);
+        }
+
+        // Cache the popup indicator sprite
+        private static Sprite _cachedPopupSprite;
+
+        private Sprite GetCachedPopupSprite()
+        {
+            if (_cachedPopupSprite != null) return _cachedPopupSprite;
+
+            int size = 24;
+            var tex = new Texture2D(size, size);
+            tex.filterMode = FilterMode.Point;
+
+            // Create a simple notification/exclamation shape for popup indicator
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dist = Vector2.Distance(new Vector2(x, y), center);
+                    bool isOuter = dist < size / 2f - 1 && dist > size / 2f - 4;
+                    tex.SetPixel(x, y, isOuter ? Color.white : Color.clear);
+                }
+            }
+
+            tex.Apply();
+            _cachedPopupSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+            return _cachedPopupSprite;
         }
 
         /// <summary>

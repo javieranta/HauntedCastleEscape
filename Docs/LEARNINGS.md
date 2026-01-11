@@ -361,4 +361,383 @@ m_Scenes:
 
 ---
 
-**Last Updated:** 2026-01-10
+**Last Updated:** 2026-01-11
+
+---
+
+## 13. Duplicate Visual Systems Cause "Fake Doors"
+
+**Problem:** All rooms appear to have 4 doors, but some are "fake" - they don't transition to other rooms when entered.
+
+**Root Cause:** Two separate visual systems were creating room visuals:
+1. `RoomVisuals` component (attached to each Room) - creates floor, walls, doors
+2. `RoomVisualizer` singleton - ALSO created floor, walls, doors
+
+Both systems checked `roomData.northDoor?.exists == true` before creating doors, but having duplicate visuals caused confusion and visual glitches.
+
+**Solution:** Separate responsibilities:
+- `RoomVisuals` handles floor, walls, and door gaps (attached to Room)
+- `RoomVisualizer` ONLY handles decorations (torches, stairs, furniture)
+
+```csharp
+// In RoomVisualizer.CreateRoomVisuals() - DON'T create floor/walls
+public void CreateRoomVisuals(RoomData roomData)
+{
+    // NOTE: Floor and Walls are created by RoomVisuals component.
+    // RoomVisualizer only handles decorations to avoid duplicate visuals.
+
+    // Do NOT call CreateFloor() or CreateWalls() here!
+    CreateDecorations(roomData);  // Only decorations
+}
+```
+
+**Files affected:**
+- `RoomVisualizer.cs` - Removed CreateFloor/CreateWalls calls
+- `RoomVisuals.cs` - Handles all floor/wall/door visuals
+
+---
+
+## 14. Dark Fallback Colors Cause Floor Darkness
+
+**Problem:** Basement floor appears completely dark even with good ambient lighting.
+
+**Root Cause:** When Midjourney sprite files fail to load, the fallback procedural colors are very dark:
+```csharp
+// OLD - Too dark!
+Color floorColor = floorLevel switch
+{
+    0 => new Color(0.25f, 0.22f, 0.2f),  // Basement - almost black
+    // ...
+};
+```
+
+Combined with vignette overlay, this makes the basement unplayable.
+
+**Solution:** Use much brighter fallback colors:
+```csharp
+// NEW - Playable brightness
+Color floorColor = floorLevel switch
+{
+    0 => new Color(0.55f, 0.48f, 0.52f),  // Basement - visible purple
+    1 => new Color(0.55f, 0.48f, 0.42f),  // Castle - warm
+    2 => new Color(0.6f, 0.58f, 0.55f),   // Tower - bright
+    _ => new Color(0.5f, 0.45f, 0.4f)
+};
+```
+
+Also reduce vignette intensity for basement:
+```csharp
+basementAtmosphere = new FloorAtmosphere
+{
+    vignetteIntensity = 0.15f,  // Very minimal for visibility
+    // ...
+};
+```
+
+**Files affected:**
+- `PlaceholderSpriteGenerator.cs` - Brighter fallback floor colors
+- `AtmosphereManager.cs` - Reduced basement vignette intensity
+
+---
+
+## 15. All Sprite Generators Need Bright Basement Colors
+
+**Problem:** Basement remains dark despite fixing fallback colors in PlaceholderSpriteGenerator, because multiple procedural sprite generators are called in a chain and ALL have dark basement colors.
+
+**Root Cause:** The sprite loading fallback chain tries multiple generators:
+1. Midjourney sprites (may not load)
+2. HDSmoothSpriteGenerator
+3. UltraHDSpriteGenerator
+4. PhotorealisticSpriteGenerator
+5. EnhancedSpriteGenerator
+6. PlaceholderSpriteGenerator fallback
+
+Each generator had its own dark basement colors. If Midjourney sprites fail, ANY of these could be used, and they all had colors like (0.22, 0.2, 0.18) for basement floors - almost black.
+
+**Solution:** Brighten ALL sprite generators' basement colors to ~0.45-0.55 range:
+
+```csharp
+// Example brightened basement colors (floor 0)
+case 0: // Basement - BRIGHTENED for visibility
+    baseColor = new Color(0.48f, 0.42f, 0.45f);
+    lightColor = new Color(0.62f, 0.55f, 0.58f);
+    darkColor = new Color(0.38f, 0.32f, 0.35f);
+    groutColor = new Color(0.28f, 0.24f, 0.26f);
+    break;
+```
+
+**Files affected (ALL brightened for basement/floor 0):**
+- `HDSmoothSpriteGenerator.cs` - GetStoneFloorTile colors
+- `UltraHDSpriteGenerator.cs` - GetFloorTileSprite and GetWallSprite for case 0
+- `PhotorealisticSpriteGenerator.cs` - GetFloorTileSprite and GetWallSprite for case 0
+- `EnhancedSpriteGenerator.cs` - Palettes.BasementStone, BasementStoneDark, BasementStoneLight
+- `PlaceholderSpriteGenerator.cs` - Fallback floor colors
+
+---
+
+## 16. Door Visual Creation Was Empty
+
+**Problem:** Doors disappeared from rooms after disabling duplicate visual systems.
+
+**Root Cause:** `RoomVisuals.CreateDoorway()` method was empty/commented out. It was originally supposed to create door sprites in wall gaps, but the implementation was missing. After disabling `RoomVisualizer`'s floor/wall/door creation (to fix fake doors), no system was creating door visuals.
+
+**Solution:** Implement actual door sprite creation in RoomVisuals.CreateDoorway():
+
+```csharp
+private void CreateDoorway(string name, Vector2 position, bool isVertical, Color color)
+{
+    var doorObj = new GameObject(name);
+    doorObj.transform.SetParent(transform);
+    doorObj.transform.localPosition = position;
+
+    var sr = doorObj.AddComponent<SpriteRenderer>();
+    Sprite doorSprite = PlaceholderSpriteGenerator.GetDoorSprite(false, "");
+    sr.sprite = doorSprite;
+    sr.sortingLayerName = "Walls";
+    sr.sortingOrder = 2;
+    sr.drawMode = SpriteDrawMode.Simple;
+
+    // Scale door to fit gap
+    Vector2 doorSize = isVertical
+        ? new Vector2(wallThickness * 1.5f, doorWidth)
+        : new Vector2(doorWidth, wallThickness * 1.5f);
+
+    if (doorSprite != null)
+    {
+        float scaleX = doorSize.x / doorSprite.bounds.size.x;
+        float scaleY = doorSize.y / doorSprite.bounds.size.y;
+        doorObj.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+    }
+}
+```
+
+**Files affected:**
+- `RoomVisuals.cs` - CreateDoorway implementation
+
+---
+
+## 17. TextMeshPro AddComponent at Runtime Triggers TMP Importer Freeze
+
+**Problem:** Game freezes when enemy projectile hits player. TMP Importer dialog appears and blocks the game.
+
+**Root Cause:** Using `AddComponent<TextMeshPro>()` at runtime triggers Unity's TextMeshPro Importer window. This window is modal and blocks all game input until manually closed. Unlike other component types, TMP has special import requirements.
+
+**Symptoms:**
+- Game freezes immediately on first enemy hit
+- "TMP Importer" window appears in Unity Editor
+- Cannot interact with game until window is closed
+- Happens in both Editor and builds (in builds, just freezes with no dialog)
+
+**Affected code patterns:**
+```csharp
+// BAD - Triggers TMP Importer dialog and freezes game
+var textObj = new GameObject("DamageNumber");
+var tmp = textObj.AddComponent<TextMeshPro>();  // FREEZE!
+tmp.text = "10";
+```
+
+**Solution:** Replace TextMeshPro with SpriteRenderer-based visuals:
+
+```csharp
+// GOOD - No TMP dependency, no freeze
+var indicatorObj = new GameObject("DamageIndicator");
+var sr = indicatorObj.AddComponent<SpriteRenderer>();
+sr.sprite = GetCachedDamageSprite();  // Use cached sprite
+sr.color = Color.red;
+sr.sortingLayerName = "UI";
+sr.sortingOrder = 1000;
+
+// Cache sprites to avoid runtime texture creation
+private static Sprite _cachedDamageSprite;
+private Sprite GetCachedDamageSprite()
+{
+    if (_cachedDamageSprite != null) return _cachedDamageSprite;
+
+    int size = 16;
+    var tex = new Texture2D(size, size);
+    // Create simple shape...
+    tex.Apply();
+    _cachedDamageSprite = Sprite.Create(tex, ...);
+    return _cachedDamageSprite;
+}
+```
+
+**Alternative Solutions:**
+1. Pre-create TMP components in prefabs (not at runtime)
+2. Use Unity's legacy Text component (also not recommended for runtime creation)
+3. Use object pooling with pre-instantiated TMP objects
+
+**Files affected:**
+- `CombatFeedbackManager.cs` - ShowComboCounter, ComboCounterRoutine
+- `VisualEffectsManager.cs` - ShowDamageNumber, ShowHealNumber, ShowTextPopup
+
+---
+
+## 18. Floor Numbering in TestRoomSetup Must Match RoomDatabase Convention
+
+**Problem:** Starting room showed RED test marker (floor 0 = basement) instead of GREEN (floor 1 = castle).
+
+**Root Cause:** TestRoomSetup.cs was creating the starting room "room_center" with `floorNumber = 0`, but the game convention expects:
+- Floor 0 = Basement (RED test marker) - dungeons, dark, dangerous
+- Floor 1 = Castle (GREEN test marker) - starting area
+- Floor 2 = Tower (BLUE test marker) - upper floors
+
+**Solution:** Ensure floor numbers match the convention:
+
+```csharp
+// Starting room should be floor 1 (Castle), not floor 0 (Basement)
+var centerRoom = CreateRoomData("room_center", "Grand Hall", 1, true, false);
+                                                           // ↑ This was 0, should be 1
+```
+
+Also ensure stairs lead to correct floor rooms:
+```csharp
+// Stairs UP from floor 1 → floor 2 (Tower)
+centerRoom.stairsUp = new FloorTransition {
+    destinationRoomId = "room_f2_center",  // floor 2 room
+    position = new Vector2(5f, 2f)  // Right side
+};
+
+// Stairs DOWN from floor 1 → floor 0 (Basement)
+centerRoom.stairsDown = new FloorTransition {
+    destinationRoomId = "room_dungeon_1",  // floor 0 room
+    position = new Vector2(-5f, 2f)  // Left side (separate from stairs up!)
+};
+```
+
+**Files affected:**
+- `TestRoomSetup.cs` - All castle rooms changed from floor 0 to floor 1
+
+---
+
+## 19. Invalid Layer Assignment Can Cause Black Screen on Room Transition
+
+**Problem:** Room transitions result in completely black screen, even though logs show room was built successfully.
+
+**Root Cause:** During room building, code like `gameObject.layer = LayerMask.NameToLayer("Hazards")` returns -1 when the layer doesn't exist. Assigning -1 to `gameObject.layer` causes Unity error: "A game object can only be in one layer. The layer needs to be in the range [0...31]"
+
+This error can disrupt the room building process in subtle ways, even if it doesn't throw an exception that stops the build entirely.
+
+**Solution:** Always validate layer exists before assignment:
+
+```csharp
+// BAD - Layer might not exist
+gameObject.layer = LayerMask.NameToLayer("Hazards");  // Returns -1 if missing!
+
+// GOOD - Validate with fallback
+int layer = LayerMask.NameToLayer("Hazards");
+if (layer >= 0 && layer <= 31)
+{
+    gameObject.layer = layer;
+}
+else
+{
+    gameObject.layer = 0;  // Default layer
+    Debug.LogWarning($"Layer 'Hazards' not found, using Default layer");
+}
+```
+
+**Also helpful:** Add a safety fade check after room transitions:
+```csharp
+// After room transition, verify fade cleared
+StartCoroutine(DelayedFadeCheck());
+
+private IEnumerator DelayedFadeCheck()
+{
+    yield return new WaitForSecondsRealtime(1.0f);
+    if (TransitionManager.Instance.CurrentFadeAlpha > 0.05f)
+    {
+        Debug.LogError("Fade stuck! Force clearing...");
+        TransitionManager.Instance.ForceTransparent();
+    }
+}
+```
+
+**Files affected:**
+- `Hazard.cs` - Layer assignment validation added
+- `RoomManager.cs` - DelayedFadeCheck safety coroutine added
+
+---
+
+## 20. Reading Unity Editor Log Directly for Hidden Errors
+
+**Problem:** Some Unity errors don't appear prominently in the Console window, or get lost in a flood of messages.
+
+**Solution:** Read the Unity Editor log file directly:
+
+```
+Location: C:\Users\[Username]\AppData\Local\Unity\Editor\Editor.log
+```
+
+**Useful search patterns:**
+```bash
+# Find all errors
+grep -i "error" Editor.log | tail -100
+
+# Find specific error messages
+grep "layer" Editor.log
+grep "range 0 to 31" Editor.log
+
+# Find stack traces for specific scripts
+grep "Hazard.cs" Editor.log
+```
+
+**Key insight:** The Editor.log contains EVERYTHING - including errors that might be swallowed or not displayed prominently. When debugging mysterious issues, always check this file.
+
+---
+
+## 21. Add Safety Checks for Critical Game State
+
+**Problem:** Edge cases and interrupted coroutines can leave the game in bad states (e.g., fade overlay stuck at black).
+
+**Solution:** Add delayed safety checks that verify and correct state:
+
+```csharp
+// After any critical state change, add a delayed verification
+StartCoroutine(DelayedStateCheck());
+
+private IEnumerator DelayedStateCheck()
+{
+    // Wait for normal completion
+    yield return new WaitForSecondsRealtime(1.0f);
+
+    // Verify state is correct, fix if not
+    if (TransitionManager.Instance.CurrentFadeAlpha > 0.05f)
+    {
+        Debug.LogError("State corrupted! Forcing correction...");
+        TransitionManager.Instance.ForceTransparent();
+    }
+}
+```
+
+**Best practices:**
+1. Use `WaitForSecondsRealtime` (not `WaitForSeconds`) to work even when timeScale=0
+2. Log when safety checks trigger - indicates a bug to investigate
+3. Add these checks for any state that, if stuck, would break the game
+
+---
+
+## 22. Systematic Logging for Complex Flows
+
+**Problem:** When a multi-step process fails, it's hard to know which step caused the issue.
+
+**Solution:** Add tagged logging at every step of the process:
+
+```csharp
+// Use consistent tags for filtering
+Debug.LogWarning("[STAIRS DEBUG] Step 1: Trigger entered");
+Debug.LogWarning("[STAIRS DEBUG] Step 2: Player detected");
+Debug.LogWarning("[FLOOR TRANSITION] Initiating transition...");
+Debug.LogWarning("[FLOOR TRANSITION] Room loaded: " + roomId);
+
+// Separate post-completion diagnostics
+Debug.LogWarning("[POST-TRANSITION] Fade alpha: " + fadeAlpha);
+Debug.LogWarning("[POST-TRANSITION] Camera position: " + camPos);
+```
+
+**Benefits:**
+1. Easy to filter logs by tag (grep "[STAIRS DEBUG]")
+2. Clear sequence of what happened
+3. Easy to spot where flow stopped
+
+**Remember to remove/reduce verbose logging** once the issue is fixed!

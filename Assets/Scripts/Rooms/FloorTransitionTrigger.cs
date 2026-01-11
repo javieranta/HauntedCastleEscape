@@ -325,7 +325,23 @@ namespace HauntedCastle.Rooms
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (!other.CompareTag("Player")) return;
+            // DEBUG: Log EVERY collision with this trigger
+            Debug.LogWarning($"[STAIRS DEBUG] OnTriggerEnter2D called! Collider: {other.gameObject.name}, Tag: '{other.tag}'");
+
+            // Use string comparison instead of CompareTag (CompareTag fails silently if tag doesn't exist)
+            bool isPlayer = other.tag == "Player" || other.gameObject.name.ToLower().Contains("player");
+
+            Debug.LogWarning($"[STAIRS DEBUG] Is this the player? {isPlayer}");
+
+            if (!isPlayer)
+            {
+                Debug.LogWarning($"[STAIRS DEBUG] Not the player - ignoring collision");
+                return;
+            }
+
+            Debug.LogWarning($"[STAIRS DEBUG] *** PLAYER ENTERED {transitionType} TRIGGER! ***");
+            Debug.LogWarning($"[STAIRS DEBUG] Destination: {transitionData?.destinationRoomId ?? "NULL"}");
+            Debug.LogWarning($"[STAIRS DEBUG] RequiresInteraction: {requiresInteraction}");
 
             _playerInTrigger = true;
 
@@ -337,6 +353,7 @@ namespace HauntedCastle.Rooms
 
             if (!requiresInteraction)
             {
+                Debug.LogWarning($"[STAIRS DEBUG] Auto-triggering transition (no interaction required)...");
                 TriggerTransition();
             }
             else
@@ -348,8 +365,11 @@ namespace HauntedCastle.Rooms
 
         private void OnTriggerExit2D(Collider2D other)
         {
-            if (other.CompareTag("Player"))
+            // Use string comparison instead of CompareTag
+            bool isPlayer = other.tag == "Player" || other.gameObject.name.ToLower().Contains("player");
+            if (isPlayer)
             {
+                Debug.LogWarning($"[STAIRS DEBUG] Player exited {transitionType} trigger");
                 _playerInTrigger = false;
 
                 // Hide arrow indicator
@@ -362,10 +382,26 @@ namespace HauntedCastle.Rooms
 
         private void TriggerTransition()
         {
-            if (RoomManager.Instance != null && !RoomManager.Instance.IsTransitioning)
+            Debug.LogWarning($"[STAIRS DEBUG] TriggerTransition called for {transitionType}");
+            Debug.LogWarning($"[STAIRS DEBUG] RoomManager.Instance: {(RoomManager.Instance != null ? "EXISTS" : "NULL")}");
+
+            if (RoomManager.Instance == null)
             {
-                RoomManager.Instance.TransitionThroughFloor(transitionType);
+                Debug.LogError($"[STAIRS DEBUG] FAILED: RoomManager.Instance is NULL!");
+                return;
             }
+
+            Debug.LogWarning($"[STAIRS DEBUG] RoomManager.IsTransitioning: {RoomManager.Instance.IsTransitioning}");
+
+            if (RoomManager.Instance.IsTransitioning)
+            {
+                Debug.LogWarning($"[STAIRS DEBUG] BLOCKED: Already transitioning, ignoring");
+                return;
+            }
+
+            Debug.LogWarning($"[STAIRS DEBUG] *** CALLING RoomManager.TransitionThroughFloor({transitionType}) ***");
+            RoomManager.Instance.TransitionThroughFloor(transitionType);
+            Debug.LogWarning($"[STAIRS DEBUG] TransitionThroughFloor call completed");
         }
 
         private void OnDrawGizmos()

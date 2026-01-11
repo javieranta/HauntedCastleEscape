@@ -57,7 +57,18 @@ namespace HauntedCastle.Rooms
             UpdateVisual();
 
             gameObject.tag = "Hazard";
-            gameObject.layer = LayerMask.NameToLayer("Hazards");
+            // Use a valid layer index - default to TRIGGERS_LAYER (14) if Hazards layer doesn't exist
+            int hazardsLayer = LayerMask.NameToLayer("Hazards");
+            if (hazardsLayer >= 0 && hazardsLayer <= 31)
+            {
+                gameObject.layer = hazardsLayer;
+            }
+            else
+            {
+                // Fallback to a standard layer (Default = 0, or use Triggers layer index 14)
+                gameObject.layer = 0; // Default layer
+                Debug.LogWarning($"[Hazard] 'Hazards' layer not found, using Default layer. Add 'Hazards' layer in Unity's Layer settings.");
+            }
         }
 
         private void UpdateVisual()
@@ -104,7 +115,8 @@ namespace HauntedCastle.Rooms
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (other.CompareTag("Player"))
+            // Use string comparison instead of CompareTag (CompareTag fails silently if tag doesn't exist)
+            if (other.tag == "Player" || other.gameObject.name.ToLower().Contains("player"))
             {
                 _playerInHazard = true;
                 Debug.Log($"[Hazard] Player entered {hazardType} hazard");
@@ -113,7 +125,8 @@ namespace HauntedCastle.Rooms
 
         private void OnTriggerExit2D(Collider2D other)
         {
-            if (other.CompareTag("Player"))
+            // Use string comparison instead of CompareTag
+            if (other.tag == "Player" || other.gameObject.name.ToLower().Contains("player"))
             {
                 _playerInHazard = false;
             }

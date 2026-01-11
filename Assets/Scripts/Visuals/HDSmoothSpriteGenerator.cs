@@ -28,10 +28,10 @@ namespace HauntedCastle.Visuals
             tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Repeat;
 
-            // Base stone colors
-            Color baseColor = new Color(0.35f, 0.32f, 0.28f);
-            Color darkColor = new Color(0.22f, 0.20f, 0.18f);
-            Color lightColor = new Color(0.48f, 0.44f, 0.40f);
+            // Base stone colors - BRIGHTENED for better visibility
+            Color baseColor = new Color(0.55f, 0.50f, 0.48f);
+            Color darkColor = new Color(0.45f, 0.40f, 0.38f);
+            Color lightColor = new Color(0.70f, 0.65f, 0.60f);
 
             // Generate stone texture with noise
             for (int y = 0; y < SIZE; y++)

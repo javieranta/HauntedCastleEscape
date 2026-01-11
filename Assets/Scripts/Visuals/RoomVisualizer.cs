@@ -6,8 +6,9 @@ using HauntedCastle.Utils;
 namespace HauntedCastle.Visuals
 {
     /// <summary>
-    /// Creates visual representation of rooms using sprites.
-    /// Draws walls, floors, and decorations.
+    /// Creates decorative visual elements for rooms (torches, stairs, furniture).
+    /// NOTE: Floor and wall visuals are handled by RoomVisuals component attached to each Room.
+    /// This separation prevents duplicate visuals and the "fake doors" problem.
     /// </summary>
     public class RoomVisualizer : MonoBehaviour
     {
@@ -88,20 +89,19 @@ namespace HauntedCastle.Visuals
             _currentRoomVisuals.transform.SetParent(_visualsContainer);
             _currentRoomVisuals.transform.localPosition = Vector3.zero;
 
-            // Create floor
-            CreateFloor(roomData);
+            // NOTE: Floor and Walls are created by RoomVisuals component attached to each Room.
+            // RoomVisualizer only handles decorations to avoid duplicate visuals and "fake doors".
+            // Do NOT call CreateFloor() or CreateWalls() here - they would create duplicate visuals.
 
-            // Create walls
-            CreateWalls(roomData);
-
-            // Create ambient decorations based on room type
+            // Create ambient decorations based on room type (torches, stairs, furniture)
             CreateDecorations(roomData);
 
-            Debug.Log($"[RoomVisualizer] Created visuals for room: {roomData.roomId}");
+            Debug.Log($"[RoomVisualizer] Created decorations for room: {roomData.roomId}");
         }
 
         /// <summary>
-        /// Creates minimal visuals when normal creation fails.
+        /// Creates minimal decorations when normal creation fails.
+        /// Note: Floor/wall visuals are handled by RoomVisuals, this just adds basic torches.
         /// </summary>
         private void CreateFallbackVisuals(RoomData roomData)
         {
@@ -114,18 +114,13 @@ namespace HauntedCastle.Visuals
             _currentRoomVisuals.transform.SetParent(_visualsContainer);
             _currentRoomVisuals.transform.localPosition = Vector3.zero;
 
-            // Create a simple colored floor quad
-            var floor = new GameObject("FallbackFloor");
-            floor.transform.SetParent(_currentRoomVisuals.transform);
-            floor.transform.localPosition = Vector3.zero;
+            // Just add basic torches - floor/walls are handled by RoomVisuals component
+            var decoContainer = new GameObject("Decorations");
+            decoContainer.transform.SetParent(_currentRoomVisuals.transform);
+            CreateTorch(decoContainer, new Vector3(-6f, 3f, 0));
+            CreateTorch(decoContainer, new Vector3(6f, 3f, 0));
 
-            var sr = floor.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateFallbackSprite();
-            sr.sortingLayerName = "Background";
-            sr.sortingOrder = 0;
-            sr.transform.localScale = new Vector3(roomWidth, roomHeight, 1);
-
-            Debug.LogWarning("[RoomVisualizer] Created fallback visuals");
+            Debug.LogWarning("[RoomVisualizer] Created fallback decorations (floor/walls handled by RoomVisuals)");
         }
 
         private Sprite CreateFallbackSprite()
