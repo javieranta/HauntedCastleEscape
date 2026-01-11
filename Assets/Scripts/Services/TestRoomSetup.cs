@@ -146,7 +146,7 @@ namespace HauntedCastle.Services
             seRoom.westDoor = CreateDoor("room_south");
             // Add barrel passage (Serf only)
             seRoom.secretPassages.Add(CreateSecretPassage(SecretPassageType.Barrel, "room_hidden_tunnel", new Vector2(4f, -2f)));
-            seRoom.trapdoor = CreateFloorTransition("room_dungeon_2"); // Trapdoor to basement
+            seRoom.trapdoor = CreateFloorTransition("room_dungeon_southeast"); // Trapdoor to The Pit
             // Spiders infest the cellar
             seRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(2f, 1f)));
             seRoom.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(-1f, -2f)));
