@@ -194,13 +194,8 @@ namespace HauntedCastle.Services
             f2North.southDoor = CreateDoor("room_f2_center");
             f2North.eastDoor = CreateDoor("room_f2_northeast");
             f2North.westDoor = CreateDoor("room_f2_northwest");
-            // Stairs to the spire
-            f2North.stairsUp = new FloorTransition
-            {
-                exists = true,
-                destinationRoomId = "room_f2_spire",
-                position = new Vector2(0f, 3f)
-            };
+            // Door to the spire (no more stairs up from tower)
+            f2North.northDoor = CreateDoor("room_f2_spire");
             f2North.enemySpawns.Add(CreateEnemySpawn(EnemyType.Vampire, new Vector2(0f, 0f), 0.8f));
             f2North.itemSpawns.Add(CreateItemSpawn("special_cross", new Vector2(4f, -1f)));
             rooms.Add(f2North);
@@ -274,14 +269,9 @@ namespace HauntedCastle.Services
             f2Southwest.itemSpawns.Add(CreateItemSpawn("treasure_painting", new Vector2(-3f, 1f)));
             rooms.Add(f2Southwest);
 
-            // Tower Spire - Top of the tower (accessible from throne room)
+            // Tower Spire - Top of the tower (accessible via door from throne room)
             var f2Spire = CreateRoomData("room_f2_spire", "Tower Spire", 2);
-            f2Spire.stairsDown = new FloorTransition
-            {
-                exists = true,
-                destinationRoomId = "room_f2_north",
-                position = new Vector2(0f, -3f)
-            };
+            f2Spire.southDoor = CreateDoor("room_f2_north");
             // Key piece location!
             f2Spire.itemSpawns.Add(CreateItemSpawn("keypiece_0", new Vector2(0f, 2f), true));
             f2Spire.enemySpawns.Add(CreateEnemySpawn(EnemyType.Demon, new Vector2(-2f, 0f), 0.9f));
@@ -360,13 +350,8 @@ namespace HauntedCastle.Services
             dungeonSouth.northDoor = CreateDoor("room_dungeon_center");
             dungeonSouth.eastDoor = CreateDoor("room_dungeon_southeast");
             dungeonSouth.westDoor = CreateDoor("room_dungeon_southwest");
-            // Stairs down to the depths
-            dungeonSouth.stairsDown = new FloorTransition
-            {
-                exists = true,
-                destinationRoomId = "room_dungeon_depths",
-                position = new Vector2(0f, -3f)
-            };
+            // Door to the depths (no more stairs down from basement)
+            dungeonSouth.southDoor = CreateDoor("room_dungeon_depths");
             dungeonSouth.enemySpawns.Add(CreateEnemySpawn(EnemyType.Ghost, new Vector2(-3f, 0f)));
             dungeonSouth.enemySpawns.Add(CreateEnemySpawn(EnemyType.Ghost, new Vector2(3f, 0f)));
             rooms.Add(dungeonSouth);
@@ -449,14 +434,9 @@ namespace HauntedCastle.Services
             dungeonSouthwest.enemySpawns.Add(CreateEnemySpawn(EnemyType.Spider, new Vector2(0f, 2f)));
             rooms.Add(dungeonSouthwest);
 
-            // Dungeon Depths - Deepest level (accessible from prison)
+            // Dungeon Depths - Deepest level (accessible via door from prison)
             var dungeonDepths = CreateRoomData("room_dungeon_depths", "The Depths", 0);
-            dungeonDepths.stairsUp = new FloorTransition
-            {
-                exists = true,
-                destinationRoomId = "room_dungeon_south",
-                position = new Vector2(0f, 3f)
-            };
+            dungeonDepths.northDoor = CreateDoor("room_dungeon_south");
             // Key piece location!
             dungeonDepths.itemSpawns.Add(CreateItemSpawn("keypiece_2", new Vector2(0f, 0f), true));
             // SPECIAL ENEMY: Werewolf guards the depths!
