@@ -354,64 +354,8 @@ namespace HauntedCastle.Effects
 
         private IEnumerator ComboCounterRoutine(Vector3 position, int comboCount)
         {
-            var comboObj = new GameObject("ComboCounter");
-            comboObj.transform.position = position + new Vector3(0, 1.5f, 0);
-
-            var sr = comboObj.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateComboSprite();
-            sr.sortingLayerName = "UI";
-            sr.sortingOrder = 1001;
-
-            int colorIndex = Mathf.Min(comboCount - 1, comboColors.Length - 1);
-            sr.color = comboColors[Mathf.Max(0, colorIndex)];
-
-            float elapsed = 0f;
-            float duration = 0.8f;
-            Vector3 startScale = Vector3.one * (0.5f + comboCount * 0.1f);
-            Vector3 endScale = Vector3.one * 0.3f;
-
-            while (elapsed < duration)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                float t = elapsed / duration;
-
-                comboObj.transform.localScale = Vector3.Lerp(startScale, endScale, t);
-                comboObj.transform.position = position + new Vector3(0, 1.5f + t * 0.5f, 0);
-
-                Color c = sr.color;
-                c.a = 1f - (t * t);
-                sr.color = c;
-
-                yield return null;
-            }
-
-            Destroy(comboObj);
-        }
-
-        private static Sprite _cachedComboSprite;
-
-        private Sprite CreateComboSprite()
-        {
-            if (_cachedComboSprite != null) return _cachedComboSprite;
-
-            int size = 16;
-            var tex = new Texture2D(size, size);
-            tex.filterMode = FilterMode.Point;
-
-            Vector2 center = new Vector2(size / 2f, size / 2f);
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    float dist = Vector2.Distance(new Vector2(x, y), center);
-                    bool isStar = dist < size / 2f - 2;
-                    tex.SetPixel(x, y, isStar ? Color.white : Color.clear);
-                }
-            }
-
-            tex.Apply();
-            _cachedComboSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
-            return _cachedComboSprite;
+            // Disabled - no visual indicator
+            yield break;
         }
 
         public void CreateComboStreak(Vector3 position, int comboCount)

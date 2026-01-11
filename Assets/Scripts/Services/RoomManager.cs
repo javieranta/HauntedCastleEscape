@@ -592,66 +592,9 @@ namespace HauntedCastle.Services
                 Debug.LogError("[DIAGNOSTIC] TransitionManager.Instance is NULL!");
             }
 
-            // 5. Create GUARANTEED VISIBLE test object at world origin
-            CreateDiagnosticMarker();
-
             Debug.LogWarning("=================================================================");
             Debug.LogWarning("[DIAGNOSTIC] ========== END DIAGNOSTICS ==========");
             Debug.LogWarning("=================================================================");
-        }
-
-        /// <summary>
-        /// Creates a bright, impossible-to-miss marker at world origin.
-        /// If you can't see this, the problem is camera or rendering related.
-        /// </summary>
-        private void CreateDiagnosticMarker()
-        {
-            // Destroy any existing diagnostic marker
-            var existing = GameObject.Find("DIAGNOSTIC_MARKER");
-            if (existing != null) Destroy(existing);
-
-            // Create new marker at WORLD ORIGIN (0, 0, 0)
-            var marker = new GameObject("DIAGNOSTIC_MARKER");
-            marker.transform.position = Vector3.zero; // World origin
-
-            var sr = marker.AddComponent<SpriteRenderer>();
-
-            // Create a simple white square texture
-            var tex = new Texture2D(32, 32);
-            var pixels = new Color[32 * 32];
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                pixels[i] = Color.white;
-            }
-            tex.SetPixels(pixels);
-            tex.Apply();
-
-            sr.sprite = Sprite.Create(tex, new Rect(0, 0, 32, 32), new Vector2(0.5f, 0.5f), 32f);
-            sr.color = Color.magenta; // BRIGHT MAGENTA - impossible to miss
-            sr.sortingLayerName = "UI"; // Highest layer
-            sr.sortingOrder = 10000; // On top of everything
-            marker.transform.localScale = new Vector3(5f, 5f, 1f); // BIG
-
-            Debug.LogWarning($"[DIAGNOSTIC] Created MAGENTA diagnostic marker at world origin (0,0,0)");
-            Debug.LogWarning($"[DIAGNOSTIC] If you can see a MAGENTA square, camera is working.");
-            Debug.LogWarning($"[DIAGNOSTIC] If you CANNOT see it, check: camera position, culling mask, or something covering the view.");
-
-            // Also create a marker at the room's expected position
-            if (CurrentRoom != null)
-            {
-                var roomMarker = new GameObject("DIAGNOSTIC_ROOM_MARKER");
-                roomMarker.transform.position = CurrentRoom.transform.position + new Vector3(2, 2, 0);
-                roomMarker.transform.SetParent(CurrentRoom.transform);
-
-                var sr2 = roomMarker.AddComponent<SpriteRenderer>();
-                sr2.sprite = sr.sprite;
-                sr2.color = Color.cyan; // CYAN marker at room position
-                sr2.sortingLayerName = "UI";
-                sr2.sortingOrder = 10001;
-                roomMarker.transform.localScale = new Vector3(3f, 3f, 1f);
-
-                Debug.LogWarning($"[DIAGNOSTIC] Created CYAN marker at room position + offset: {roomMarker.transform.position}");
-            }
         }
 
         private Room BuildRoom(RoomData roomData)
@@ -779,7 +722,8 @@ namespace HauntedCastle.Services
                     : new Vector2(2.5f, 2.5f);
 
                 var sr = transObj.AddComponent<SpriteRenderer>();
-                sr.color = type == FloorTransitionType.Trapdoor ? Color.magenta : Color.cyan;
+                // Use subtle colors - the FloorTransitionTrigger will set proper sprite
+                sr.color = Color.white;
             }
 
             // Scale stairs for visibility

@@ -130,33 +130,6 @@ namespace HauntedCastle.Rooms
                 }
             }
 
-            // DIAGNOSTIC: Add test marker to ALL floors with floor-specific color
-            var testObj = new GameObject("FLOOR_TEST_MARKER");
-            testObj.transform.SetParent(floorContainer.transform);
-            testObj.transform.localPosition = Vector3.zero;
-            var testSR = testObj.AddComponent<SpriteRenderer>();
-
-            // Different colors per floor for easy identification
-            Color markerColor = _floorLevel switch
-            {
-                0 => Color.red,      // Basement - RED
-                1 => Color.green,    // Castle - GREEN
-                2 => Color.blue,     // Tower - BLUE
-                _ => Color.white
-            };
-            testSR.sprite = PlaceholderSpriteGenerator.GetSquareSprite($"FloorTest_{_floorLevel}", markerColor, 64);
-            testSR.sortingLayerName = "Background";
-            testSR.sortingOrder = -9; // Just above floor
-            testObj.transform.localScale = new Vector3(3f, 3f, 1f); // Even bigger for visibility
-
-            // Log room and camera positions for debugging
-            Vector3 roomWorldPos = transform.position;
-            Vector3 cameraPos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
-            Debug.LogWarning($"[RoomVisuals] *** TEST MARKER CREATED for floor {_floorLevel} ***");
-            Debug.LogWarning($"  Room position: {roomWorldPos}");
-            Debug.LogWarning($"  Camera position: {cameraPos}");
-            Debug.LogWarning($"  Distance from camera: {Vector3.Distance(roomWorldPos, new Vector3(cameraPos.x, cameraPos.y, 0))}");
-            Debug.LogWarning($"  Marker color: {markerColor} - Look for this in the center of the room!");
         }
 
         private void CreateThemedWalls()
