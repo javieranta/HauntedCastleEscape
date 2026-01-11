@@ -89,8 +89,24 @@ namespace HauntedCastle.Rooms
 
             // Get the Midjourney floor sprite
             Debug.LogWarning($"[RoomVisuals.CreateTiledFloor] Calling GetFloorTileSprite({_floorLevel}, 0)");
-            Sprite floorSprite = PlaceholderSpriteGenerator.GetFloorTileSprite(_floorLevel, 0);
-            Debug.LogWarning($"[RoomVisuals.CreateTiledFloor] Got sprite: {floorSprite?.name ?? "NULL"}");
+            Sprite originalSprite = PlaceholderSpriteGenerator.GetFloorTileSprite(_floorLevel, 0);
+            Debug.LogWarning($"[RoomVisuals.CreateTiledFloor] Got sprite: {originalSprite?.name ?? "NULL"}");
+
+            // For basement (floor 0) and tower (floor 2), make tiles 25% of normal size
+            // by creating a sprite with 4x higher pixels-per-unit
+            Sprite floorSprite = originalSprite;
+            if ((_floorLevel == 0 || _floorLevel == 2) && originalSprite != null && originalSprite.texture != null)
+            {
+                float originalPPU = originalSprite.pixelsPerUnit;
+                float newPPU = originalPPU * 4f; // 4x smaller tiles
+                floorSprite = Sprite.Create(
+                    originalSprite.texture,
+                    originalSprite.rect,
+                    new Vector2(0.5f, 0.5f),
+                    newPPU
+                );
+                Debug.Log($"[RoomVisuals] Created smaller tiles for floor {_floorLevel}: PPU {originalPPU} -> {newPPU}");
+            }
 
             // Create a SINGLE large floor that covers the room
             // The texture will tile naturally due to Wrap Mode = Repeat

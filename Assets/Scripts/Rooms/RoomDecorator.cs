@@ -314,16 +314,16 @@ namespace HauntedCastle.Rooms
         {
             if (vertical)
             {
-                // Left or right wall
-                float x = _rng.Next(0, 2) == 0 ? -roomWidth / 2 + 1f : roomWidth / 2 - 1f;
-                float y = (float)(_rng.NextDouble() * (roomHeight - wallMargin * 2) - (roomHeight / 2 - wallMargin));
+                // Left or right wall - position ON the wall (at the edge, not inside room)
+                float x = _rng.Next(0, 2) == 0 ? -roomWidth / 2 + 0.3f : roomWidth / 2 - 0.3f;
+                float y = (float)(_rng.NextDouble() * (roomHeight - wallMargin * 4) - (roomHeight / 2 - wallMargin * 2));
                 return new Vector2(x, y);
             }
             else
             {
-                // Top or bottom wall
+                // Top or bottom wall - position ON the wall
                 float x = (float)(_rng.NextDouble() * (roomWidth - wallMargin * 4) - (roomWidth / 2 - wallMargin * 2));
-                float y = _rng.Next(0, 2) == 0 ? roomHeight / 2 - 1.5f : -roomHeight / 2 + 1.5f;
+                float y = _rng.Next(0, 2) == 0 ? roomHeight / 2 - 0.3f : -roomHeight / 2 + 0.3f;
                 return new Vector2(x, y);
             }
         }
