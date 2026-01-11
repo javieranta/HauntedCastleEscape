@@ -402,10 +402,12 @@ namespace HauntedCastle.Services
             rooms.Add(dungeonNorthwest);
 
             // Dungeon Southeast - The Pit
+            // NOTE: One-way trapdoor - you fall IN from Wine Cellar, but must use stairs to leave
+            // No trapdoor back up (it was confusing - showed "down" arrow but went up)
             var dungeonSoutheast = CreateRoomData("room_dungeon_southeast", "The Pit", 0);
             dungeonSoutheast.northDoor = CreateDoor("room_dungeon_east");
             dungeonSoutheast.westDoor = CreateDoor("room_dungeon_south");
-            dungeonSoutheast.trapdoor = CreateFloorTransition("room_southeast"); // Back to wine cellar
+            // Removed: dungeonSoutheast.trapdoor - one-way only from wine cellar
             dungeonSoutheast.hazardSpawns.Add(new HazardSpawn
             {
                 hazardType = HazardType.Acid,
